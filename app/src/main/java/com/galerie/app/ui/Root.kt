@@ -1,0 +1,199 @@
+package com.galerie.app.ui
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoAlbum
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
+
+enum class Access { NONE, PARTIAL, FULL }
+
+object Perms {
+    val request: Array<String> = when {
+        Build.VERSION.SDK_INT >= 34 -> arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED, Manifest.permission.ACCESS_MEDIA_LOCATION,
+        )
+        Build.VERSION.SDK_INT >= 33 -> arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.ACCESS_MEDIA_LOCATION,
+        )
+        else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.ACCESS_MEDIA_LOCATION)
+    }
+
+    private fun granted(ctx: Context, p: String) = ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
+
+    fun access(ctx: Context): Access = when {
+        Build.VERSION.SDK_INT >= 33 && granted(ctx, Manifest.permission.READ_MEDIA_IMAGES) && granted(ctx, Manifest.permission.READ_MEDIA_VIDEO) -> Access.FULL
+        Build.VERSION.SDK_INT < 33 && granted(ctx, Manifest.permission.READ_EXTERNAL_STORAGE) -> Access.FULL
+        Build.VERSION.SDK_INT >= 34 && granted(ctx, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) -> Access.PARTIAL
+        Build.VERSION.SDK_INT >= 33 && (granted(ctx, Manifest.permission.READ_MEDIA_IMAGES) || granted(ctx, Manifest.permission.READ_MEDIA_VIDEO)) -> Access.PARTIAL
+        else -> Access.NONE
+    }
+
+    fun hasLocation(ctx: Context) = granted(ctx, Manifest.permission.ACCESS_MEDIA_LOCATION)
+
+    fun canManageMedia(ctx: Context) = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(ctx)
+}
+
+@Composable
+fun Root(vm: GalleryViewModel) {
+    val ctx = LocalContext.current
+    var access by remember { mutableStateOf(Perms.access(ctx)) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        access = Perms.access(ctx)
+        if (access != Access.NONE) vm.start()
+    }
+    LifecycleResumeEffect(Unit) {
+        access = Perms.access(ctx)
+        if (access != Access.NONE) vm.start()
+        onPauseOrDispose { }
+    }
+    LaunchedEffect(Unit) { if (access == Access.NONE) launcher.launch(Perms.request) }
+
+    if (access == Access.NONE) {
+        PermissionScreen(onGrant = { launcher.launch(Perms.request) }, onSettings = { Actions.appSettings(ctx) })
+    } else {
+        Navigation(vm, partial = access == Access.PARTIAL, onRequestMore = { launcher.launch(Perms.request) })
+    }
+}
+
+@Composable
+private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: () -> Unit) {
+    val holder = rememberSaveableStateHolder()
+    val keys = vm.stack.mapIndexed { i, s -> "$i:$s" }
+    var previous by remember { mutableStateOf(keys) }
+    LaunchedEffect(keys) {
+        (previous - keys.toSet()).forEach { holder.removeState(it) }
+        previous = keys
+    }
+    BackHandler(enabled = vm.selection.isNotEmpty() || vm.stack.size > 1) {
+        if (vm.selection.isNotEmpty()) vm.selection = emptySet() else vm.pop()
+    }
+    val target = keys.last() to vm.stack.last()
+    AnimatedContent(
+        targetState = target,
+        contentKey = { it.first },
+        transitionSpec = { fadeIn(tween(170)) togetherWith fadeOut(tween(110)) },
+        label = "nav",
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+    ) { (key, screen) ->
+        holder.SaveableStateProvider(key) {
+            when (screen) {
+                Screen.Home -> HomeScreen(vm, partial, onRequestMore)
+                is Screen.Collection -> CollectionScreen(vm, screen.source, screen.title)
+                is Screen.Viewer -> ViewerScreen(vm, screen.source, screen.startId)
+                Screen.SettingsScreen -> SettingsScreen(vm)
+                Screen.Cleanup -> CleanupScreen(vm)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: () -> Unit) {
+    val tabs = remember { rememberSaveableStateHolderKeyed() }
+    val holder = rememberSaveableStateHolder()
+    Scaffold(
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            if (vm.selection.isNotEmpty()) {
+                SelectionBottomBar(vm, trashMode = false)
+            } else {
+                Column {
+                    if (partial) {
+                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Accès limité à certaines photos", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                TextButton(onRequestMore) { Text("Tout autoriser") }
+                            }
+                        }
+                    }
+                    NavigationBar {
+                        NavigationBarItem(vm.tab == 0, { vm.tab = 0 }, { Icon(Icons.Outlined.Image, null) }, label = { Text("Photos") })
+                        NavigationBarItem(vm.tab == 1, { vm.tab = 1 }, { Icon(Icons.Outlined.PhotoAlbum, null) }, label = { Text("Albums") })
+                        NavigationBarItem(vm.tab == 2, { vm.tab = 2 }, { Icon(Icons.Filled.Search, null) }, label = { Text("Recherche") })
+                    }
+                }
+            }
+        },
+    ) { pad ->
+        holder.SaveableStateProvider(tabs[vm.tab]) {
+            when (vm.tab) {
+                0 -> PhotosTab(vm, pad)
+                1 -> AlbumsTab(vm, pad)
+                else -> SearchTab(vm, pad)
+            }
+        }
+    }
+}
+
+private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-albums", "tab-search")
+
+@Composable
+private fun PermissionScreen(onGrant: () -> Unit, onSettings: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(20.dp))
+        Text("Vos photos et vidéos", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Galerie a besoin d'accéder à vos médias pour les afficher. Rien ne quitte votre téléphone.",
+            textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(24.dp))
+        Button(onGrant) { Text("Autoriser l'accès") }
+        TextButton(onSettings) { Text("Ouvrir les paramètres") }
+    }
+}
