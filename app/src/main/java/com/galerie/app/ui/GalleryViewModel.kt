@@ -58,7 +58,7 @@ data class Settings(
 
 sealed interface Source {
     data object Timeline : Source
-    data class AlbumSrc(val bucketId: Long) : Source
+    data class AlbumSrc(val bucketIds: Set<Long>) : Source
     data class Smart(val kind: SmartKind) : Source
     data class Search(val query: String) : Source
     data object Trash : Source
@@ -70,6 +70,7 @@ sealed interface Screen {
     data class Viewer(val source: Source, val startId: Long) : Screen
     data object SettingsScreen : Screen
     data object Cleanup : Screen
+    data object Search : Screen
 }
 
 sealed interface UiEvent {
@@ -173,7 +174,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }, s,
         )
-        is Source.AlbumSrc -> sort(a.filter { it.bucketId == source.bucketId }, s)
+        is Source.AlbumSrc -> sort(a.filter { it.bucketId in source.bucketIds }, s)
         is Source.Smart -> when (source.kind) {
             SmartKind.LARGE, SmartKind.DUPLICATES, SmartKind.RECENT -> smart(source.kind, a)
             else -> sort(smart(source.kind, a), s)
@@ -244,9 +245,11 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun buildAlbums(a: List<Media>, sort: AlbumSort): List<Album> {
-        val list = a.groupBy { it.bucketId }.map { (id, items) ->
+        // Fusion par nom : un seul « Camera », un seul « Screenshots »…
+        val list = a.groupBy { it.bucketName.trim().lowercase() }.map { (_, items) ->
             val cover = items.maxBy { it.date }
-            Album(id, cover.bucketName, cover.relativePath, cover, items.size, items.sumOf { it.size }, cover.date)
+            val ids = items.mapTo(HashSet()) { it.bucketId }
+            Album(ids.min(), ids, cover.bucketName, cover.relativePath, cover, items.size, items.sumOf { it.size }, cover.date)
         }
         val sorted = when (sort) {
             AlbumSort.RECENT -> list.sortedByDescending { it.latest }
@@ -340,7 +343,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun toggleHidden(bucketId: Long) = update {
-        it.copy(hiddenAlbums = if (bucketId in it.hiddenAlbums) it.hiddenAlbums - bucketId else it.hiddenAlbums + bucketId)
+    fun toggleHidden(ids: Set<Long>) = update {
+        it.copy(hiddenAlbums = if (it.hiddenAlbums.containsAll(ids)) it.hiddenAlbums - ids else it.hiddenAlbums + ids)
     }
 }

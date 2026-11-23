@@ -36,6 +36,8 @@ data class Media(
 
 data class Album(
     val id: Long,
+    /** Dossiers fusionnés sous un même nom (ex. plusieurs « Camera »). */
+    val bucketIds: Set<Long>,
     val name: String,
     val relativePath: String,
     val cover: Media,

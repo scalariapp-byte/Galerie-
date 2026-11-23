@@ -7,6 +7,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -78,7 +82,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -94,6 +101,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -132,6 +142,34 @@ private fun CenterMessage(icon: ImageVector, text: String) {
     }
 }
 
+// ======================= BARRE DE RECHERCHE (en haut) =======================
+
+@Composable
+fun SearchPill(hint: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(26.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth().height(46.dp),
+    ) {
+        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(hint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchTopBar(vm: GalleryViewModel, hint: String, scroll: TopAppBarScrollBehavior? = null, actions: @Composable RowScope.() -> Unit) {
+    TopAppBar(
+        title = { SearchPill(hint, onClick = { vm.push(Screen.Search) }, Modifier.padding(end = 4.dp)) },
+        actions = actions,
+        scrollBehavior = scroll,
+    )
+}
+
 // ======================= PHOTOS =======================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,29 +179,16 @@ fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
     val settings by vm.settings.collectAsState()
     val loaded by vm.loaded.collectAsState()
     val entries = rememberEntries(items, settings, dated = true)
-    val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         contentWindowInsets = WindowInsets(0),
         topBar = {
             if (vm.selection.isNotEmpty()) SelectionTopBar(vm, items)
-            else LargeTopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("Photos")
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "${items.size}", style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                },
-                actions = {
-                    SortMenu(vm, settings, showFilter = true)
-                    OverflowMenu(vm)
-                },
-                scrollBehavior = scroll,
-            )
+            else SearchTopBar(vm, "Rechercher dans ${items.size} photos", scroll) {
+                SortMenu(vm, settings, showFilter = true)
+                OverflowMenu(vm)
+            }
         },
     ) { inner ->
         when {
@@ -230,97 +255,103 @@ private fun OverflowMenu(vm: GalleryViewModel) {
     }
 }
 
-// ======================= ALBUMS =======================
+// ======================= ALBUMS (tout visible sans défiler) =======================
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val open: () -> Unit)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val counts by vm.smartCounts.collectAsState()
     val trash by vm.trash.collectAsState()
     val settings by vm.settings.collectAsState()
-    val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val smart = buildList {
+        SmartKind.entries.forEach { k ->
+            val n = counts[k]?.first ?: 0
+            if (n > 0 || k == SmartKind.FAVORITES) add(SmartItem(smartIcon(k), k.label, n) { vm.push(Screen.Collection(Source.Smart(k), k.label)) })
+        }
+        add(SmartItem(Icons.Filled.Delete, "Corbeille", trash.size) { vm.push(Screen.Collection(Source.Trash, "Corbeille")) })
+    }
     Scaffold(
-        modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            LargeTopAppBar(
-                title = { Text("Albums") },
-                actions = {
-                    var open by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton({ open = true }) { Icon(Icons.Filled.Sort, "Trier") }
-                        DropdownMenu(open, { open = false }) {
-                            AlbumSort.entries.forEach { s ->
-                                DropdownMenuItem(
-                                    text = { Text(s.label) },
-                                    leadingIcon = { RadioButton(settings.albumSort == s, null) },
-                                    onClick = { vm.update { it.copy(albumSort = s) }; open = false },
-                                )
-                            }
+            SearchTopBar(vm, "Rechercher dans ${albums.size} albums") {
+                var open by remember { mutableStateOf(false) }
+                Box {
+                    IconButton({ open = true }) { Icon(Icons.Filled.Sort, "Trier") }
+                    DropdownMenu(open, { open = false }) {
+                        AlbumSort.entries.forEach { s ->
+                            DropdownMenuItem(
+                                text = { Text(s.label) },
+                                leadingIcon = { RadioButton(settings.albumSort == s, null) },
+                                onClick = { vm.update { it.copy(albumSort = s) }; open = false },
+                            )
                         }
                     }
-                    OverflowMenu(vm)
-                },
-                scrollBehavior = scroll,
-            )
+                }
+                OverflowMenu(vm)
+            }
         },
     ) { inner ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(104.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = inner.calculateTopPadding() + 4.dp, bottom = outer.calculateBottomPadding() + 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize(),
+        BoxWithConstraints(
+            Modifier.fillMaxSize().padding(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding()),
         ) {
-            items(albums, key = { it.id }) { a ->
-                AlbumCard(
-                    a, hidden = a.id in settings.hiddenAlbums,
-                    onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.id), a.name)) },
-                    onToggleHidden = { vm.toggleHidden(a.id) },
-                )
+            val hPad = 12.dp
+            val gap = 8.dp
+            // Collections : puces sur plusieurs lignes, sans défilement horizontal
+            val chipsPerRow = ((maxWidth - hPad * 2) / 124.dp).toInt().coerceAtLeast(2)
+            val smartH = 40.dp * ((smart.size + chipsPerRow - 1) / chipsPerRow) + 12.dp
+            // On choisit le plus petit nombre de colonnes qui fait tenir TOUS les albums à l'écran.
+            fun labelH(cols: Int) = if (cols <= 4) 38.dp else 20.dp
+            fun heightFor(cols: Int): Dp {
+                val tile = (maxWidth - hPad * 2 - gap * (cols - 1)) / cols
+                val rows = (albums.size + cols - 1) / cols
+                return smartH + (tile + labelH(cols)) * rows + gap * (rows - 1).coerceAtLeast(0) + 16.dp
             }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text("Plus", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 18.dp, bottom = 2.dp))
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-                    SmartKind.entries.forEach { k ->
-                        val (n, _) = counts[k] ?: (0 to 0L)
-                        if (n > 0 || k == SmartKind.FAVORITES) {
-                            SmartRow(smartIcon(k), k.label, n) { vm.push(Screen.Collection(Source.Smart(k), k.label)) }
+            val cols = (3..9).firstOrNull { heightFor(it) <= maxHeight } ?: 9
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(cols),
+                contentPadding = PaddingValues(start = hPad, end = hPad, top = 4.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(gap),
+                verticalArrangement = Arrangement.spacedBy(gap),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    ) {
+                        smart.forEach { s ->
+                            AssistChip(
+                                onClick = s.open,
+                                label = { Text(if (s.count > 0) "${s.label} ${s.count}" else s.label, maxLines = 1) },
+                                leadingIcon = { Icon(s.icon, null, Modifier.size(18.dp)) },
+                                modifier = Modifier.height(34.dp),
+                            )
                         }
                     }
-                    SmartRow(Icons.Filled.Delete, "Récemment supprimé", trash.size) {
-                        vm.push(Screen.Collection(Source.Trash, "Corbeille"))
-                    }
+                }
+                items(albums, key = { it.id }) { a ->
+                    AlbumCard(
+                        a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), compact = cols > 4,
+                        onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
+                        onToggleHidden = { vm.toggleHidden(a.bucketIds) },
+                    )
                 }
             }
         }
     }
 }
 
-@Composable
-private fun SmartRow(icon: ImageVector, label: String, count: Int, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.width(18.dp))
-        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        if (count > 0) Text("$count", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleMedium)
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AlbumCard(a: Album, hidden: Boolean, onClick: () -> Unit, onToggleHidden: () -> Unit) {
+private fun AlbumCard(a: Album, hidden: Boolean, compact: Boolean, onClick: () -> Unit, onToggleHidden: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Column {
         Box(
-            Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(22.dp))
+            Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(if (compact) 12.dp else 20.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .combinedClickable(onClick = onClick, onLongClick = { menu = true }),
         ) {
@@ -328,8 +359,8 @@ private fun AlbumCard(a: Album, hidden: Boolean, onClick: () -> Unit, onToggleHi
             if (hidden) {
                 Icon(
                     Icons.Filled.VisibilityOff, "Masqué de Photos", tint = Color.White,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(20.dp)
-                        .background(Color(0x66000000), RoundedCornerShape(10.dp)).padding(2.dp),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp)
+                        .background(Color(0x66000000), RoundedCornerShape(9.dp)).padding(2.dp),
                 )
             }
             DropdownMenu(menu, { menu = false }) {
@@ -340,45 +371,55 @@ private fun AlbumCard(a: Album, hidden: Boolean, onClick: () -> Unit, onToggleHi
                 )
             }
         }
-        Text(a.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp, start = 2.dp))
-        Text("${a.count}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 2.dp))
+        if (compact) {
+            Text(
+                "${a.name} · ${a.count}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 3.dp, start = 1.dp),
+            )
+        } else {
+            Text(a.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp, start = 2.dp))
+            Text("${a.count}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 2.dp))
+        }
     }
 }
 
-// ======================= RECHERCHE =======================
+// ======================= RECHERCHE (écran ouvert depuis la barre du haut) =======================
 
 @Composable
-fun SearchTab(vm: GalleryViewModel, outer: PaddingValues) {
+fun SearchScreen(vm: GalleryViewModel) {
     var query by rememberSaveable { mutableStateOf("") }
     var debounced by remember { mutableStateOf(query.trim()) }
     LaunchedEffect(query) { delay(180); debounced = query.trim() }
     val settings by vm.settings.collectAsState()
     val all by vm.all.collectAsState()
+    val albums by vm.albums.collectAsState()
     val years = remember(all) {
         all.asSequence().map { Calendar.getInstance().apply { timeInMillis = it.date }.get(Calendar.YEAR) }.distinct().sortedDescending().take(8).toList()
     }
     val source = Source.Search(debounced)
     val items by rememberItems(vm, source)
+    val focus = remember { FocusRequester() }
+    var focusedOnce by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (!focusedOnce) { focusedOnce = true; runCatching { focus.requestFocus() } } }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
         topBar = {
             if (vm.selection.isNotEmpty()) SelectionTopBar(vm, items)
-            else Column(Modifier.statusBarsPadding().padding(top = 8.dp)) {
-                TextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = { Text("Nom, album, date, « vidéo », « 2025 »…") },
-                    leadingIcon = { Icon(Icons.Filled.Search, null) },
-                    trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Filled.Clear, "Effacer") } },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                )
+            else Column(Modifier.statusBarsPadding().padding(top = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, end = 12.dp)) {
+                    IconButton({ vm.pop() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour") }
+                    TextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("Nom, album, date, « vidéo »…") },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Filled.Clear, "Effacer") } },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        shape = RoundedCornerShape(26.dp),
+                        colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                        modifier = Modifier.weight(1f).focusRequester(focus),
+                    )
+                }
                 val chips = listOf("Vidéos" to "video", "Favoris" to "favori", "Captures" to "capture", "GIF" to "gif", "Panoramas" to "panorama", "HD" to "hd") +
                     years.map { "$it" to "$it" }
                 LazyRow(
@@ -395,10 +436,26 @@ fun SearchTab(vm: GalleryViewModel, outer: PaddingValues) {
                 }
             }
         },
+        bottomBar = { if (vm.selection.isNotEmpty()) SelectionBottomBar(vm, trashMode = false) },
     ) { inner ->
         Box(Modifier.padding(top = inner.calculateTopPadding()).fillMaxSize()) {
             if (debounced.isBlank()) {
-                CenterMessage(Icons.Filled.Search, "Cherchez par nom de fichier, album, jour (« samedi »), mois (« novembre 2025 ») ou type.")
+                // Albums correspondants en accès direct
+                LazyColumn(contentPadding = PaddingValues(bottom = inner.calculateBottomPadding() + 16.dp)) {
+                    item {
+                        Text("Albums", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp, 8.dp))
+                    }
+                    items(albums, key = { it.id }) { a ->
+                        ListItem(
+                            leadingContent = {
+                                AsyncImage(Thumb(a.cover.uri, a.cover.dateModified), null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)))
+                            },
+                            headlineContent = { Text(a.name) },
+                            supportingContent = { Text("${a.count}") },
+                            modifier = Modifier.clickable { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
+                        )
+                    }
+                }
             } else if (items.isEmpty()) {
                 CenterMessage(Icons.Filled.Search, "Aucun résultat pour « $debounced »")
             } else {
@@ -415,7 +472,7 @@ fun SearchTab(vm: GalleryViewModel, outer: PaddingValues) {
                         selection = vm.selection,
                         onSelectionChange = { vm.selection = it },
                         onOpen = { vm.push(Screen.Viewer(source, it.id)) },
-                        contentPadding = PaddingValues(bottom = outer.calculateBottomPadding() + 8.dp),
+                        contentPadding = PaddingValues(bottom = inner.calculateBottomPadding() + 8.dp),
                         focusId = vm.lastViewedId,
                     )
                 }
@@ -630,7 +687,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                     modifier = Modifier.clickable { Actions.appSettings(ctx) },
                 )
             }
-            val hidden = albums.filter { it.id in s.hiddenAlbums }
+            val hidden = albums.filter { s.hiddenAlbums.containsAll(it.bucketIds) }
             if (hidden.isNotEmpty()) {
                 item { Section("Albums masqués de Photos") }
                 items(hidden, key = { it.id }) { a ->
@@ -640,12 +697,12 @@ fun SettingsScreen(vm: GalleryViewModel) {
                         },
                         headlineContent = { Text(a.name) },
                         supportingContent = { Text("${a.count}") },
-                        trailingContent = { OutlinedButton({ vm.toggleHidden(a.id) }) { Text("Afficher") } },
+                        trailingContent = { OutlinedButton({ vm.toggleHidden(a.bucketIds) }) { Text("Afficher") } },
                     )
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.0") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.1") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }

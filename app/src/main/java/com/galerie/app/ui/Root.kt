@@ -132,6 +132,7 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                 is Screen.Viewer -> ViewerScreen(vm, screen.source, screen.startId)
                 Screen.SettingsScreen -> SettingsScreen(vm)
                 Screen.Cleanup -> CleanupScreen(vm)
+                Screen.Search -> SearchScreen(vm)
             }
         }
     }
@@ -159,23 +160,21 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                     NavigationBar {
                         NavigationBarItem(vm.tab == 0, { vm.tab = 0 }, { Icon(Icons.Outlined.Image, null) }, label = { Text("Photos") })
                         NavigationBarItem(vm.tab == 1, { vm.tab = 1 }, { Icon(Icons.Outlined.PhotoAlbum, null) }, label = { Text("Albums") })
-                        NavigationBarItem(vm.tab == 2, { vm.tab = 2 }, { Icon(Icons.Filled.Search, null) }, label = { Text("Recherche") })
                     }
                 }
             }
         },
     ) { pad ->
-        holder.SaveableStateProvider(tabs[vm.tab]) {
+        holder.SaveableStateProvider(tabs[vm.tab.coerceIn(0, 1)]) {
             when (vm.tab) {
                 0 -> PhotosTab(vm, pad)
-                1 -> AlbumsTab(vm, pad)
-                else -> SearchTab(vm, pad)
+                else -> AlbumsTab(vm, pad)
             }
         }
     }
 }
 
-private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-albums", "tab-search")
+private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-albums")
 
 @Composable
 private fun PermissionScreen(onGrant: () -> Unit, onSettings: () -> Unit) {
