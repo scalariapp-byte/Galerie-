@@ -97,18 +97,21 @@ fun SelectionTopBar(vm: GalleryViewModel, items: List<Media>) {
 }
 
 @Composable
-fun SelectionBottomBar(vm: GalleryViewModel, trashMode: Boolean) {
+fun SelectionBottomBar(vm: GalleryViewModel, trashMode: Boolean, floating: Boolean = true) {
     val ctx = LocalContext.current
     var picker by remember { mutableStateOf<Boolean?>(null) }
     val selected = remember(vm.selection) { vm.byIds(vm.selection) }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 3.dp) {
-        Row(
-            Modifier.fillMaxWidth().navigationBarsPadding().padding(vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        shadowElevation = 10.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = if (floating) 0.dp else 10.dp)
+            .then(if (floating) Modifier else Modifier.navigationBarsPadding()),
+    ) {
+        Row(Modifier.padding(vertical = 4.dp, horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
             if (trashMode) {
                 BarAction(Icons.Filled.RestoreFromTrash, "Restaurer") { vm.restore(selected) }
-                BarAction(Icons.Filled.DeleteForever, "Supprimer") { vm.deleteForever(selected) }
+                BarAction(Icons.Filled.DeleteForever, "Supprimer", MaterialTheme.colorScheme.error) { vm.deleteForever(selected) }
             } else {
                 BarAction(Icons.Filled.Share, "Partager") { Actions.share(ctx, selected) }
                 val allFav = selected.isNotEmpty() && selected.all { it.isFavorite }
@@ -117,7 +120,7 @@ fun SelectionBottomBar(vm: GalleryViewModel, trashMode: Boolean) {
                 }
                 BarAction(Icons.AutoMirrored.Filled.DriveFileMove, "Déplacer") { picker = true }
                 BarAction(Icons.Filled.ContentCopy, "Copier") { picker = false }
-                BarAction(Icons.Filled.Delete, "Supprimer") { vm.trashItems(selected) }
+                BarAction(Icons.Filled.Delete, "Supprimer", MaterialTheme.colorScheme.error) { vm.trashItems(selected) }
             }
         }
     }
@@ -137,7 +140,7 @@ fun RowScope.BarAction(icon: ImageVector, label: String, tint: Color = Color.Uns
     ) {
         Icon(icon, label, tint = if (tint == Color.Unspecified) MaterialTheme.colorScheme.onSurface else tint)
         Text(
-            label, style = MaterialTheme.typography.labelSmall,
+            label, fontSize = fixedSp(11f), maxLines = 1,
             color = if (tint == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else tint,
         )
     }

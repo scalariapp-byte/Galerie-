@@ -29,8 +29,8 @@ data class Media(
         get() = relativePath.contains("screenshot", true) || bucketName.contains("screenshot", true) ||
             bucketName.contains("capture", true) || relativePath.contains("screen", true)
     val isPanorama: Boolean
-        get() = !isVideo && width > 0 && height > 0 &&
-            maxOf(width, height).toFloat() / minOf(width, height) >= 2.2f
+        get() = !isVideo && width > height && height > 0 && !isScreenshot &&
+            width.toFloat() / height >= 2.4f
     val isHd: Boolean get() = if (isVideo) pixels >= 1920L * 1080 else pixels >= 12_000_000L
 }
 

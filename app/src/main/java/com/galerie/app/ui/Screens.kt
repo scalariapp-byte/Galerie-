@@ -4,6 +4,10 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -148,14 +152,15 @@ private fun CenterMessage(icon: ImageVector, text: String) {
 fun SearchPill(hint: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(26.dp),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.fillMaxWidth().height(46.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth().height(42.dp),
     ) {
-        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(hint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Search, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(hint, fontSize = fixedSp(15f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -163,9 +168,12 @@ fun SearchPill(hint: String, onClick: () -> Unit, modifier: Modifier = Modifier)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchTopBar(vm: GalleryViewModel, hint: String, scroll: TopAppBarScrollBehavior? = null, actions: @Composable RowScope.() -> Unit) {
+    val bg = MaterialTheme.colorScheme.background.copy(alpha = 0.94f)
     TopAppBar(
-        title = { SearchPill(hint, onClick = { vm.push(Screen.Search) }, Modifier.padding(end = 4.dp)) },
+        title = { SearchPill(hint, onClick = { vm.push(Screen.Search) }) },
         actions = actions,
+        expandedHeight = 58.dp,
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = bg, scrolledContainerColor = bg),
         scrollBehavior = scroll,
     )
 }
@@ -185,7 +193,7 @@ fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
         contentWindowInsets = WindowInsets(0),
         topBar = {
             if (vm.selection.isNotEmpty()) SelectionTopBar(vm, items)
-            else SearchTopBar(vm, "Rechercher dans ${items.size} photos", scroll) {
+            else SearchTopBar(vm, "Rechercher · ${items.size} éléments", scroll) {
                 SortMenu(vm, settings, showFilter = true)
                 OverflowMenu(vm)
             }
@@ -201,7 +209,7 @@ fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
                 selection = vm.selection,
                 onSelectionChange = { vm.selection = it },
                 onOpen = { vm.push(Screen.Viewer(Source.Timeline, it.id)) },
-                contentPadding = PaddingValues(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding() + 8.dp),
+                contentPadding = PaddingValues(start = 3.dp, end = 3.dp, top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding() + 8.dp),
                 focusId = vm.lastViewedId,
             )
         }
@@ -257,9 +265,21 @@ private fun OverflowMenu(vm: GalleryViewModel) {
 
 // ======================= ALBUMS (tout visible sans défiler) =======================
 
-private data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val open: () -> Unit)
+private data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val color: Color, val open: () -> Unit)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+private fun smartColor(k: SmartKind): Color = when (k) {
+    SmartKind.FAVORITES -> Color(0xFFFF5C8A)
+    SmartKind.VIDEOS -> Color(0xFF5AA9FF)
+    SmartKind.SCREENSHOTS -> Color(0xFFB388FF)
+    SmartKind.RECENT -> Color(0xFFFFC14D)
+    SmartKind.GIF -> Color(0xFF4DE0A0)
+    SmartKind.HD -> Color(0xFF4DD8FF)
+    SmartKind.PANORAMA -> Color(0xFF8C9EFF)
+    SmartKind.LARGE -> Color(0xFFFF9A4D)
+    SmartKind.DUPLICATES -> Color(0xFF26D0C0)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
@@ -269,14 +289,14 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val smart = buildList {
         SmartKind.entries.forEach { k ->
             val n = counts[k]?.first ?: 0
-            if (n > 0 || k == SmartKind.FAVORITES) add(SmartItem(smartIcon(k), k.label, n) { vm.push(Screen.Collection(Source.Smart(k), k.label)) })
+            if (n > 0 || k == SmartKind.FAVORITES) add(SmartItem(smartIcon(k), k.short, n, smartColor(k)) { vm.push(Screen.Collection(Source.Smart(k), k.label)) })
         }
-        add(SmartItem(Icons.Filled.Delete, "Corbeille", trash.size) { vm.push(Screen.Collection(Source.Trash, "Corbeille")) })
+        add(SmartItem(Icons.Filled.Delete, "Corbeille", trash.size, Color(0xFFFF6B6B)) { vm.push(Screen.Collection(Source.Trash, "Corbeille")) })
     }
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
-            SearchTopBar(vm, "Rechercher dans ${albums.size} albums") {
+            SearchTopBar(vm, "Rechercher · ${albums.size} albums") {
                 var open by remember { mutableStateOf(false) }
                 Box {
                     IconButton({ open = true }) { Icon(Icons.Filled.Sort, "Trier") }
@@ -294,91 +314,128 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
             }
         },
     ) { inner ->
-        BoxWithConstraints(
-            Modifier.fillMaxSize().padding(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding()),
-        ) {
-            val hPad = 12.dp
-            val gap = 8.dp
-            // Collections : puces sur plusieurs lignes, sans défilement horizontal
-            val chipsPerRow = ((maxWidth - hPad * 2) / 124.dp).toInt().coerceAtLeast(2)
-            val smartH = 40.dp * ((smart.size + chipsPerRow - 1) / chipsPerRow) + 12.dp
-            // On choisit le plus petit nombre de colonnes qui fait tenir TOUS les albums à l'écran.
-            fun labelH(cols: Int) = if (cols <= 4) 38.dp else 20.dp
-            fun heightFor(cols: Int): Dp {
-                val tile = (maxWidth - hPad * 2 - gap * (cols - 1)) / cols
-                val rows = (albums.size + cols - 1) / cols
-                return smartH + (tile + labelH(cols)) * rows + gap * (rows - 1).coerceAtLeast(0) + 16.dp
+        val hPad = 12.dp
+        val gap = 8.dp
+        Column(Modifier.fillMaxSize().padding(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding())) {
+            // Collections : tuiles compactes, 5 par ligne, couleurs d'accent
+            Column(Modifier.padding(horizontal = hPad).padding(top = 4.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                smart.chunked(5).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        row.forEach { SmartTile(it, Modifier.weight(1f)) }
+                        repeat(5 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
             }
-            val cols = (3..9).firstOrNull { heightFor(it) <= maxHeight } ?: 9
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(cols),
-                contentPadding = PaddingValues(start = hPad, end = hPad, top = 4.dp, bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(gap),
-                verticalArrangement = Arrangement.spacedBy(gap),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                        modifier = Modifier.padding(bottom = 4.dp),
+            Row(Modifier.padding(horizontal = hPad + 2.dp, vertical = 2.dp), verticalAlignment = Alignment.Bottom) {
+                Text("ALBUMS", fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(1.5f), color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text("${albums.size}", fontSize = fixedSp(12f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 6.dp, bottom = 4.dp)) {
+                val n = albums.size
+                var layout: Triple<Int, Dp, Dp>? = null
+                if (n > 0) for (cols in 2..10) {
+                    val tw = (maxWidth - gap * (cols - 1)) / cols
+                    val rows = (n + cols - 1) / cols
+                    if (tw * rows + gap * (rows - 1) <= maxHeight) {
+                        val th = minOf(tw * 1.4f, (maxHeight - gap * (rows - 1)) / rows)
+                        layout = Triple(cols, tw, th)
+                        break
+                    }
+                }
+                val l = layout
+                if (l != null) {
+                    val (cols, tw, th) = l
+                    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                        albums.chunked(cols).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                                row.forEach { a ->
+                                    AlbumTile(
+                                        a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = tw,
+                                        modifier = Modifier.size(tw, th),
+                                        onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
+                                        onToggleHidden = { vm.toggleHidden(a.bucketIds) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        horizontalArrangement = Arrangement.spacedBy(gap),
+                        verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
-                        smart.forEach { s ->
-                            AssistChip(
-                                onClick = s.open,
-                                label = { Text(if (s.count > 0) "${s.label} ${s.count}" else s.label, maxLines = 1) },
-                                leadingIcon = { Icon(s.icon, null, Modifier.size(18.dp)) },
-                                modifier = Modifier.height(34.dp),
+                        items(albums, key = { it.id }) { a ->
+                            AlbumTile(
+                                a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 64.dp,
+                                modifier = Modifier.aspectRatio(1f),
+                                onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
+                                onToggleHidden = { vm.toggleHidden(a.bucketIds) },
                             )
                         }
                     }
-                }
-                items(albums, key = { it.id }) { a ->
-                    AlbumCard(
-                        a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), compact = cols > 4,
-                        onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
-                        onToggleHidden = { vm.toggleHidden(a.bucketIds) },
-                    )
                 }
             }
         }
     }
 }
 
+@Composable
+private fun SmartTile(s: SmartItem, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = s.open).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.size(30.dp).background(s.color.copy(alpha = 0.18f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(s.icon, null, tint = s.color, modifier = Modifier.size(17.dp))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(s.label, fontSize = fixedSp(11f), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+        Text(if (s.count > 0) "${s.count}" else "–", fontSize = fixedSp(10f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AlbumCard(a: Album, hidden: Boolean, compact: Boolean, onClick: () -> Unit, onToggleHidden: () -> Unit) {
+private fun AlbumTile(a: Album, hidden: Boolean, width: Dp, modifier: Modifier, onClick: () -> Unit, onToggleHidden: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    Column {
+    val tiny = width < 72.dp
+    Box(
+        modifier.clip(RoundedCornerShape(if (tiny) 12.dp else 18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .combinedClickable(onClick = onClick, onLongClick = { menu = true }),
+    ) {
+        AsyncImage(Thumb(a.cover.uri, a.cover.dateModified), a.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         Box(
-            Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(if (compact) 12.dp else 20.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .combinedClickable(onClick = onClick, onLongClick = { menu = true }),
-        ) {
-            AsyncImage(Thumb(a.cover.uri, a.cover.dateModified), a.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-            if (hidden) {
-                Icon(
-                    Icons.Filled.VisibilityOff, "Masqué de Photos", tint = Color.White,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp)
-                        .background(Color(0x66000000), RoundedCornerShape(9.dp)).padding(2.dp),
-                )
-            }
-            DropdownMenu(menu, { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text(if (hidden) "Afficher dans Photos" else "Masquer de Photos") },
-                    leadingIcon = { Icon(if (hidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, null) },
-                    onClick = { menu = false; onToggleHidden() },
-                )
-            }
-        }
-        if (compact) {
+            Modifier.fillMaxWidth().fillMaxHeight(0.55f).align(Alignment.BottomCenter)
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xE6000000)))),
+        )
+        Column(Modifier.align(Alignment.BottomStart).padding(horizontal = if (tiny) 6.dp else 10.dp, vertical = if (tiny) 5.dp else 8.dp)) {
             Text(
-                "${a.name} · ${a.count}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 3.dp, start = 1.dp),
+                a.name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                fontSize = fixedSp(if (tiny) 10f else 13f), lineHeight = fixedSp(if (tiny) 12f else 16f),
             )
-        } else {
-            Text(a.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp, start = 2.dp))
-            Text("${a.count}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 2.dp))
+            Text(
+                "${a.count}", color = Color.White.copy(alpha = 0.72f),
+                fontSize = fixedSp(if (tiny) 9f else 11f), lineHeight = fixedSp(if (tiny) 11f else 14f),
+            )
+        }
+        if (hidden) {
+            Icon(
+                Icons.Filled.VisibilityOff, "Masqué de Photos", tint = Color.White,
+                modifier = Modifier.align(Alignment.TopEnd).padding(5.dp).size(18.dp)
+                    .background(Color(0x66000000), CircleShape).padding(2.dp),
+            )
+        }
+        DropdownMenu(menu, { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(if (hidden) "Afficher dans Photos" else "Masquer de Photos") },
+                leadingIcon = { Icon(if (hidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, null) },
+                onClick = { menu = false; onToggleHidden() },
+            )
         }
     }
 }
@@ -436,7 +493,7 @@ fun SearchScreen(vm: GalleryViewModel) {
                 }
             }
         },
-        bottomBar = { if (vm.selection.isNotEmpty()) SelectionBottomBar(vm, trashMode = false) },
+        bottomBar = { if (vm.selection.isNotEmpty()) SelectionBottomBar(vm, trashMode = false, floating = false) },
     ) { inner ->
         Box(Modifier.padding(top = inner.calculateTopPadding()).fillMaxSize()) {
             if (debounced.isBlank()) {
@@ -516,7 +573,7 @@ fun CollectionScreen(vm: GalleryViewModel, source: Source, title: String) {
                 scrollBehavior = scroll,
             )
         },
-        bottomBar = { if (vm.selection.isNotEmpty()) SelectionBottomBar(vm, trashMode) },
+        bottomBar = { if (vm.selection.isNotEmpty()) SelectionBottomBar(vm, trashMode, floating = false) },
     ) { inner ->
         if (items.isEmpty()) {
             Box(Modifier.padding(inner)) {
@@ -642,6 +699,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                     }
                 }
             }
+            item { SwitchRow("Couleurs du fond d'écran", "Remplace la palette Galerie par Material You", s.dynamicColor) { v -> vm.update { it.copy(dynamicColor = v) } } }
             item {
                 ListItem(
                     headlineContent = { Text("Colonnes de la grille : ${s.columns}") },
@@ -702,7 +760,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.1") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.2") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }

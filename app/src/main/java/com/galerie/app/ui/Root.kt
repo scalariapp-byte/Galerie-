@@ -14,6 +14,19 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,34 +155,65 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
 private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: () -> Unit) {
     val tabs = remember { rememberSaveableStateHolderKeyed() }
     val holder = rememberSaveableStateHolder()
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Le contenu défile sous la barre flottante : on réserve juste sa hauteur.
+    val contentPad = PaddingValues(bottom = navInset + 84.dp)
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        holder.SaveableStateProvider(tabs[vm.tab.coerceIn(0, 1)]) {
+            if (vm.tab == 0) PhotosTab(vm, contentPad) else AlbumsTab(vm, contentPad)
+        }
+        Column(
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             if (vm.selection.isNotEmpty()) {
                 SelectionBottomBar(vm, trashMode = false)
             } else {
-                Column {
-                    if (partial) {
-                        Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
-                            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("Accès limité à certaines photos", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                TextButton(onRequestMore) { Text("Tout autoriser") }
-                            }
-                        }
-                    }
-                    NavigationBar {
-                        NavigationBarItem(vm.tab == 0, { vm.tab = 0 }, { Icon(Icons.Outlined.Image, null) }, label = { Text("Photos") })
-                        NavigationBarItem(vm.tab == 1, { vm.tab = 1 }, { Icon(Icons.Outlined.PhotoAlbum, null) }, label = { Text("Albums") })
+                if (partial) {
+                    Surface(
+                        onClick = onRequestMore, shape = CircleShape,
+                        color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.padding(bottom = 8.dp),
+                    ) {
+                        Text(
+                            "Accès limité · Tout autoriser", style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
                     }
                 }
+                FloatingNav(vm.tab, onSelect = { vm.tab = it })
             }
-        },
-    ) { pad ->
-        holder.SaveableStateProvider(tabs[vm.tab.coerceIn(0, 1)]) {
-            when (vm.tab) {
-                0 -> PhotosTab(vm, pad)
-                else -> AlbumsTab(vm, pad)
-            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingNav(selected: Int, onSelect: (Int) -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+        shadowElevation = 10.dp,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            NavPill(Icons.Outlined.Image, "Photos", selected == 0) { onSelect(0) }
+            NavPill(Icons.Outlined.PhotoAlbum, "Albums", selected == 1) { onSelect(1) }
+        }
+    }
+}
+
+@Composable
+private fun NavPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (active) MaterialTheme.colorScheme.primary else Color.Transparent, label = "bg")
+    val fg by animateColorAsState(if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, label = "fg")
+    Row(
+        Modifier.clip(CircleShape).background(bg).clickable(onClick = onClick)
+            .animateContentSize().height(46.dp).padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, label, tint = fg, modifier = Modifier.size(22.dp))
+        if (active) {
+            Spacer(Modifier.width(8.dp))
+            Text(label, color = fg, fontSize = fixedSp(15f), fontWeight = FontWeight.SemiBold)
         }
     }
 }

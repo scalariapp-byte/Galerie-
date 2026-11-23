@@ -37,10 +37,10 @@ enum class Filter(val label: String) { ALL("Tout"), PHOTOS("Photos"), VIDEOS("Vi
 enum class AlbumSort(val label: String) { RECENT("Plus récents"), NAME("Nom"), COUNT("Nombre d'éléments"), SIZE("Taille") }
 enum class ThemeMode(val label: String) { SYSTEM("Système"), LIGHT("Clair"), DARK("Sombre"), AMOLED("Noir AMOLED") }
 
-enum class SmartKind(val label: String) {
-    FAVORITES("Favoris"), VIDEOS("Vidéos"), SCREENSHOTS("Captures d'écran"), GIF("GIF"),
-    HD("Haute définition"), PANORAMA("Panoramas"), RECENT("Ajoutés récemment"),
-    LARGE("Gros fichiers"), DUPLICATES("Doublons"),
+enum class SmartKind(val label: String, val short: String) {
+    FAVORITES("Favoris", "Favoris"), VIDEOS("Vidéos", "Vidéos"), SCREENSHOTS("Captures d'écran", "Captures"),
+    RECENT("Ajoutés récemment", "Récents"), GIF("GIF", "GIF"), HD("Haute définition", "HD"),
+    PANORAMA("Panoramas", "Panos"), LARGE("Gros fichiers", "Lourds"), DUPLICATES("Doublons", "Doublons"),
 }
 
 data class Settings(
@@ -54,6 +54,7 @@ data class Settings(
     val albumSort: AlbumSort = AlbumSort.RECENT,
     val hiddenAlbums: Set<Long> = emptySet(),
     val slideshowSeconds: Int = 3,
+    val dynamicColor: Boolean = false,
 )
 
 sealed interface Source {
@@ -322,7 +323,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             .putInt("cols", s.columns).putString("theme", s.theme.name).putBoolean("autoplay", s.autoplay)
             .putBoolean("loop", s.loopVideos).putString("albumSort", s.albumSort.name)
             .putStringSet("hidden", s.hiddenAlbums.map { it.toString() }.toSet())
-            .putInt("slide", s.slideshowSeconds)
+            .putInt("slide", s.slideshowSeconds).putBoolean("dyn", s.dynamicColor)
             .apply()
     }
 
@@ -340,6 +341,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             albumSort = e("albumSort", d.albumSort, AlbumSort.entries.toTypedArray()),
             hiddenAlbums = prefs.getStringSet("hidden", emptySet())!!.mapNotNull { it.toLongOrNull() }.toSet(),
             slideshowSeconds = prefs.getInt("slide", d.slideshowSeconds),
+            dynamicColor = prefs.getBoolean("dyn", d.dynamicColor),
         )
     }
 

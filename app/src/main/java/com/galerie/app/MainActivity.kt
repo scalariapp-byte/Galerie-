@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settings by vm.settings.collectAsState()
-            GalerieTheme(settings.theme) {
+            GalerieTheme(settings.theme, settings.dynamicColor) {
                 val dark = when (settings.theme) {
                     ThemeMode.SYSTEM -> isSystemInDarkTheme()
                     ThemeMode.LIGHT -> false

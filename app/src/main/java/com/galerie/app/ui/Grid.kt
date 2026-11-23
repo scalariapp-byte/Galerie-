@@ -289,11 +289,11 @@ fun MediaGrid(
 @Composable
 private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boolean) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 14.dp, end = 12.dp, top = 18.dp, bottom = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(e.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        Text("${e.ids.size}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(e.title, fontSize = fixedSp(16f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(-0.2f), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text("${e.ids.size}", fontSize = fixedSp(12f), color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (selectionMode) {
             Spacer(Modifier.width(8.dp))
             Icon(
@@ -312,7 +312,7 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
     val request = remember(m.id, m.dateModified) {
         ImageRequest.Builder(ctx).data(Thumb(m.uri, m.dateModified)).build()
     }
-    Box(Modifier.aspectRatio(1f).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+    Box(Modifier.aspectRatio(1f)) {
         AsyncImage(
             model = request,
             contentDescription = m.name,
@@ -321,7 +321,8 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
                 .fillMaxSize()
                 .graphicsLayer {
                     scaleX = scale; scaleY = scale
-                    if (selected) { clip = true; shape = RoundedCornerShape(14.dp) }
+                    clip = true
+                    shape = RoundedCornerShape(if (selected) 14.dp else 3.dp)
                 },
         )
         if (m.isVideo) {
@@ -332,7 +333,7 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(15.dp))
-                Text(Format.duration(m.duration), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(Format.duration(m.duration), color = Color.White, fontSize = fixedSp(11f), fontWeight = FontWeight.SemiBold)
             }
         }
         if (m.isGif) Badge("GIF", Modifier.align(Alignment.TopEnd))
