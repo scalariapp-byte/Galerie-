@@ -2,6 +2,9 @@ package com.galerie.app.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -146,6 +149,8 @@ fun MediaGrid(
     val onOpenCur by rememberUpdatedState(onOpen)
     val onCols by rememberUpdatedState(onColumnsChange)
     val selectionMode = selection.isNotEmpty()
+    val gap = if (columns >= 6) 3.dp else if (columns >= 5) 5.dp else 7.dp
+    val corner = if (columns >= 6) 6.dp else if (columns >= 5) 10.dp else 14.dp
     var autoScroll by remember { mutableFloatStateOf(0f) }
     var dragUpdate by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -178,8 +183,8 @@ fun MediaGrid(
             columns = GridCells.Fixed(columns),
             state = state,
             contentPadding = contentPadding,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalArrangement = Arrangement.spacedBy(gap),
             modifier = Modifier
                 .fillMaxSize()
                 // Pincer pour changer le nombre de colonnes (2 à 8)
@@ -214,7 +219,7 @@ fun MediaGrid(
                                     if (currentSelection.isEmpty()) onOpenCur(e.media)
                                     else onSel(if (e.media.id in currentSelection) currentSelection - e.media.id else currentSelection + e.media.id)
                                 }
-                                is HeaderEntry -> if (currentSelection.isNotEmpty()) {
+                                is HeaderEntry -> run {
                                     up.consume()
                                     val all = currentSelection.containsAll(e.ids)
                                     onSel(if (all) currentSelection - e.ids.toSet() else currentSelection + e.ids)
@@ -270,7 +275,7 @@ fun MediaGrid(
                         GroupHeader(e, selectionMode, selectionMode && selection.containsAll(e.ids))
                     }
                     is MediaEntry -> item(key = e.key, contentType = 1) {
-                        MediaCell(e.media, e.media.id in selection, selectionMode, trashMode)
+                        MediaCell(e.media, e.media.id in selection, selectionMode, trashMode, corner)
                     }
                 }
             }
@@ -289,30 +294,34 @@ fun MediaGrid(
 @Composable
 private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boolean) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 14.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().padding(start = 2.dp, end = 0.dp, top = 18.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(e.title, fontSize = fixedSp(16f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(-0.2f), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        Text("${e.ids.size}", fontSize = fixedSp(12f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (selectionMode) {
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle, null,
-                tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
+        Box(Modifier.width(4.dp).height(22.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
+        Spacer(Modifier.width(12.dp))
+        Text(e.title, fontSize = fixedSp(20f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(-0.3f), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
+            Row(Modifier.padding(start = 12.dp, end = 8.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${e.ids.size}", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    if (selectionMode) (if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle) else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    null, modifier = Modifier.size(18.dp),
+                    tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
 @Composable
-fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Boolean) {
+fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Boolean, corner: androidx.compose.ui.unit.Dp = 14.dp) {
     val ctx = LocalContext.current
     val scale by animateFloatAsState(if (selected) 0.84f else 1f, label = "sel")
     val request = remember(m.id, m.dateModified) {
         ImageRequest.Builder(ctx).data(Thumb(m.uri, m.dateModified)).build()
     }
-    Box(Modifier.aspectRatio(1f)) {
+    Box(Modifier.aspectRatio(1f).border(if (selected) 2.dp else 0.5.dp, if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f), RoundedCornerShape(corner))) {
         AsyncImage(
             model = request,
             contentDescription = m.name,
@@ -322,14 +331,14 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
                 .graphicsLayer {
                     scaleX = scale; scaleY = scale
                     clip = true
-                    shape = RoundedCornerShape(if (selected) 14.dp else 3.dp)
+                    shape = RoundedCornerShape(corner)
                 },
         )
         if (m.isVideo) {
             Row(
-                Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000))))
-                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                Modifier.align(Alignment.BottomStart).padding(6.dp)
+                    .background(Color(0x88000000), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 5.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(15.dp))

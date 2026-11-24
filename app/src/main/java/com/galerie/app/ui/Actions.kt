@@ -61,6 +61,17 @@ object Actions {
         ctx.launch(intent, "Ouvrir la carte")
     }
 
+    fun camera(ctx: Context) {
+        val intents = listOf(
+            Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA),
+            Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE),
+        )
+        for (i in intents) {
+            if (runCatching { ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
+        }
+        Toast.makeText(ctx, "Aucune application appareil photo", Toast.LENGTH_SHORT).show()
+    }
+
     fun appSettings(ctx: Context) {
         runCatching {
             ctx.startActivity(

@@ -153,18 +153,25 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
 
 @Composable
 private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: () -> Unit) {
+    val ctx = LocalContext.current
     val tabs = remember { rememberSaveableStateHolderKeyed() }
     val holder = rememberSaveableStateHolder()
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    // Le contenu défile sous la barre flottante : on réserve juste sa hauteur.
-    val contentPad = PaddingValues(bottom = navInset + 84.dp)
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        holder.SaveableStateProvider(tabs[vm.tab.coerceIn(0, 1)]) {
-            if (vm.tab == 0) PhotosTab(vm, contentPad) else AlbumsTab(vm, contentPad)
+    val contentPad = PaddingValues(bottom = navInset + 96.dp)
+    val tab = vm.tab.coerceIn(0, 3)
+    Box(Modifier.fillMaxSize()) {
+        GlowBackground()
+        holder.SaveableStateProvider(tabs[tab]) {
+            when (tab) {
+                0 -> PhotosTab(vm, contentPad)
+                1 -> SourceTab(vm, contentPad, Source.Smart(SmartKind.VIDEOS), "Vidéos", "vidéo" to "vidéos")
+                2 -> SourceTab(vm, contentPad, Source.Smart(SmartKind.FAVORITES), "Favoris", "favori" to "favoris")
+                else -> AlbumsTab(vm, contentPad)
+            }
         }
         if (vm.selection.isEmpty()) EdgePanel(vm)
         Column(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 12.dp),
+            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (vm.selection.isNotEmpty()) {
@@ -181,7 +188,7 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                         )
                     }
                 }
-                FloatingNav(vm.tab, onSelect = { vm.tab = it })
+                BottomNav(tab, onSelect = { vm.tab = it }, onCamera = { Actions.camera(ctx) })
             }
         }
     }
@@ -219,7 +226,7 @@ private fun NavPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label
     }
 }
 
-private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-albums")
+private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-videos", "tab-favoris", "tab-albums")
 
 @Composable
 private fun PermissionScreen(onGrant: () -> Unit, onSettings: () -> Unit) {

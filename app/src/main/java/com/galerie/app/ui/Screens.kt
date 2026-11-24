@@ -4,6 +4,7 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -180,36 +181,42 @@ private fun SearchTopBar(vm: GalleryViewModel, hint: String, scroll: TopAppBarSc
 
 // ======================= PHOTOS =======================
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
     val items by vm.timeline.collectAsState()
-    val settings by vm.settings.collectAsState()
     val loaded by vm.loaded.collectAsState()
+    MediaTab(vm, outer, Source.Timeline, items, "Galerie", Format.plural(items.size, "élément", "éléments"), loaded, showFilter = true)
+}
+
+@Composable
+fun SourceTab(vm: GalleryViewModel, outer: PaddingValues, source: Source, title: String, unit: Pair<String, String>) {
+    val items by rememberItems(vm, source)
+    val loaded by vm.loaded.collectAsState()
+    MediaTab(vm, outer, source, items, title, Format.plural(items.size, unit.first, unit.second), loaded, showFilter = false)
+}
+
+@Composable
+private fun MediaTab(
+    vm: GalleryViewModel, outer: PaddingValues, source: Source, items: List<Media>,
+    title: String, subtitle: String, loaded: Boolean, showFilter: Boolean,
+) {
+    val settings by vm.settings.collectAsState()
     val entries = rememberEntries(items, settings, dated = true)
-    val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    Scaffold(
-        modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            if (vm.selection.isNotEmpty()) SelectionTopBar(vm, items)
-            else SearchTopBar(vm, "Rechercher · ${items.size} éléments", scroll) {
-                SortMenu(vm, settings, showFilter = true)
-                OverflowMenu(vm)
-            }
-        },
-    ) { inner ->
+    HeaderScaffold(vm, title, subtitle, items, actions = {
+        SortMenu(vm, settings, showFilter)
+        OverflowMenu(vm)
+    }) { top ->
         when {
             !loaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            items.isEmpty() -> CenterMessage(Icons.Filled.PhotoLibrary, "Aucune photo")
+            items.isEmpty() -> CenterMessage(Icons.Filled.PhotoLibrary, "Rien ici pour l'instant")
             else -> MediaGrid(
                 entries = entries,
                 columns = settings.columns,
                 onColumnsChange = { c -> vm.update { it.copy(columns = c) } },
                 selection = vm.selection,
                 onSelectionChange = { vm.selection = it },
-                onOpen = { vm.push(Screen.Viewer(Source.Timeline, it.id)) },
-                contentPadding = PaddingValues(start = 3.dp, end = 3.dp, top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding() + 8.dp),
+                onOpen = { vm.push(Screen.Viewer(source, it.id)) },
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = top, bottom = outer.calculateBottomPadding() + 8.dp),
                 focusId = vm.lastViewedId,
             )
         }
@@ -220,7 +227,7 @@ fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
 fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton({ open = true }) { Icon(Icons.Filled.Tune, "Trier et filtrer") }
+        RoundIconButton(Icons.Filled.Tune, "Trier et filtrer") { open = true }
         DropdownMenu(open, { open = false }) {
             Text("Trier par", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             SortMode.entries.forEach { m ->
@@ -254,7 +261,7 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
 private fun OverflowMenu(vm: GalleryViewModel) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton({ open = true }) { Icon(Icons.Filled.MoreVert, "Plus") }
+        RoundIconButton(Icons.Filled.MoreVert, "Plus") { open = true }
         DropdownMenu(open, { open = false }) {
             DropdownMenuItem({ Text("Libérer de l'espace") }, { open = false; vm.push(Screen.Cleanup) }, leadingIcon = { Icon(Icons.Filled.CleaningServices, null) })
             DropdownMenuItem({ Text("Corbeille") }, { open = false; vm.push(Screen.Collection(Source.Trash, "Corbeille")) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
@@ -284,35 +291,25 @@ fun smartColor(k: SmartKind): Color = when (k) {
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            SearchTopBar(vm, "Rechercher · ${albums.size} albums") {
-                var open by remember { mutableStateOf(false) }
-                Box {
-                    IconButton({ open = true }) { Icon(Icons.Filled.Sort, "Trier") }
-                    DropdownMenu(open, { open = false }) {
-                        AlbumSort.entries.forEach { s ->
-                            DropdownMenuItem(
-                                text = { Text(s.label) },
-                                leadingIcon = { RadioButton(settings.albumSort == s, null) },
-                                onClick = { vm.update { it.copy(albumSort = s) }; open = false },
-                            )
-                        }
-                    }
+    HeaderScaffold(vm, "Albums", Format.plural(albums.size, "album", "albums"), emptyList(), actions = {
+        var open by remember { mutableStateOf(false) }
+        Box {
+            RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
+            DropdownMenu(open, { open = false }) {
+                AlbumSort.entries.forEach { s ->
+                    DropdownMenuItem(
+                        text = { Text(s.label) },
+                        leadingIcon = { RadioButton(settings.albumSort == s, null) },
+                        onClick = { vm.update { it.copy(albumSort = s) }; open = false },
+                    )
                 }
-                OverflowMenu(vm)
             }
-        },
-    ) { inner ->
-        val hPad = 12.dp
-        val gap = 8.dp
-        Column(Modifier.fillMaxSize().padding(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding())) {
-            Row(Modifier.padding(horizontal = hPad + 2.dp, vertical = 2.dp), verticalAlignment = Alignment.Bottom) {
-                Text("ALBUMS", modifier = Modifier.padding(top = 4.dp), fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(1.5f), color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(8.dp))
-                Text("${albums.size}", fontSize = fixedSp(12f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        }
+        OverflowMenu(vm)
+    }) { top ->
+        val hPad = 14.dp
+        val gap = 10.dp
+        Column(Modifier.fillMaxSize().padding(top = top, bottom = outer.calculateBottomPadding())) {
             // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 6.dp, bottom = 4.dp)) {
                 val n = albums.size
@@ -388,6 +385,7 @@ private fun AlbumTile(a: Album, hidden: Boolean, width: Dp, modifier: Modifier, 
     Box(
         modifier.clip(RoundedCornerShape(if (tiny) 12.dp else 18.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(if (tiny) 12.dp else 18.dp))
             .combinedClickable(onClick = onClick, onLongClick = { menu = true }),
     ) {
         AsyncImage(Thumb(a.cover.uri, a.cover.dateModified), a.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -754,7 +752,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.3") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.4") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }
