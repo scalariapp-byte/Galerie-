@@ -265,9 +265,9 @@ private fun OverflowMenu(vm: GalleryViewModel) {
 
 // ======================= ALBUMS (tout visible sans défiler) =======================
 
-private data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val color: Color, val open: () -> Unit)
+data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val color: Color, val open: () -> Unit)
 
-private fun smartColor(k: SmartKind): Color = when (k) {
+fun smartColor(k: SmartKind): Color = when (k) {
     SmartKind.FAVORITES -> Color(0xFFFF5C8A)
     SmartKind.VIDEOS -> Color(0xFF5AA9FF)
     SmartKind.SCREENSHOTS -> Color(0xFFB388FF)
@@ -283,16 +283,7 @@ private fun smartColor(k: SmartKind): Color = when (k) {
 @Composable
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
-    val counts by vm.smartCounts.collectAsState()
-    val trash by vm.trash.collectAsState()
     val settings by vm.settings.collectAsState()
-    val smart = buildList {
-        SmartKind.entries.forEach { k ->
-            val n = counts[k]?.first ?: 0
-            if (n > 0 || k == SmartKind.FAVORITES) add(SmartItem(smartIcon(k), k.short, n, smartColor(k)) { vm.push(Screen.Collection(Source.Smart(k), k.label)) })
-        }
-        add(SmartItem(Icons.Filled.Delete, "Corbeille", trash.size, Color(0xFFFF6B6B)) { vm.push(Screen.Collection(Source.Trash, "Corbeille")) })
-    }
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         topBar = {
@@ -317,17 +308,8 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
         val hPad = 12.dp
         val gap = 8.dp
         Column(Modifier.fillMaxSize().padding(top = inner.calculateTopPadding(), bottom = outer.calculateBottomPadding())) {
-            // Collections : tuiles compactes, 5 par ligne, couleurs d'accent
-            Column(Modifier.padding(horizontal = hPad).padding(top = 4.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                smart.chunked(5).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        row.forEach { SmartTile(it, Modifier.weight(1f)) }
-                        repeat(5 - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
-            }
             Row(Modifier.padding(horizontal = hPad + 2.dp, vertical = 2.dp), verticalAlignment = Alignment.Bottom) {
-                Text("ALBUMS", fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(1.5f), color = MaterialTheme.colorScheme.primary)
+                Text("ALBUMS", modifier = Modifier.padding(top = 4.dp), fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(1.5f), color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
                 Text("${albums.size}", fontSize = fixedSp(12f), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -711,6 +693,18 @@ fun SettingsScreen(vm: GalleryViewModel) {
                     },
                 )
             }
+            item {
+                ListItem(
+                    headlineContent = { Text("Panneau des collections") },
+                    supportingContent = { Text("Glisser depuis le bord ${if (s.panelLeft) "gauche" else "droit"} de l'écran") },
+                    trailingContent = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(s.panelLeft, { vm.update { it.copy(panelLeft = true) } }, { Text("Gauche") })
+                            FilterChip(!s.panelLeft, { vm.update { it.copy(panelLeft = false) } }, { Text("Droite") })
+                        }
+                    },
+                )
+            }
             item { Section("Vidéos") }
             item { SwitchRow("Lecture automatique", "Lancer la vidéo à l'ouverture", s.autoplay) { v -> vm.update { it.copy(autoplay = v) } } }
             item { SwitchRow("Lecture en boucle", null, s.loopVideos) { v -> vm.update { it.copy(loopVideos = v) } } }
@@ -760,7 +754,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.2") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.3") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }

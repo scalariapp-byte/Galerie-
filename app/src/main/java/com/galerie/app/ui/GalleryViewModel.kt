@@ -55,6 +55,7 @@ data class Settings(
     val hiddenAlbums: Set<Long> = emptySet(),
     val slideshowSeconds: Int = 3,
     val dynamicColor: Boolean = false,
+    val panelLeft: Boolean = false,
 )
 
 sealed interface Source {
@@ -323,7 +324,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             .putInt("cols", s.columns).putString("theme", s.theme.name).putBoolean("autoplay", s.autoplay)
             .putBoolean("loop", s.loopVideos).putString("albumSort", s.albumSort.name)
             .putStringSet("hidden", s.hiddenAlbums.map { it.toString() }.toSet())
-            .putInt("slide", s.slideshowSeconds).putBoolean("dyn", s.dynamicColor)
+            .putInt("slide", s.slideshowSeconds).putBoolean("dyn", s.dynamicColor).putBoolean("panelLeft", s.panelLeft)
             .apply()
     }
 
@@ -342,6 +343,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             hiddenAlbums = prefs.getStringSet("hidden", emptySet())!!.mapNotNull { it.toLongOrNull() }.toSet(),
             slideshowSeconds = prefs.getInt("slide", d.slideshowSeconds),
             dynamicColor = prefs.getBoolean("dyn", d.dynamicColor),
+            panelLeft = prefs.getBoolean("panelLeft", d.panelLeft),
         )
     }
 

@@ -162,6 +162,7 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
         holder.SaveableStateProvider(tabs[vm.tab.coerceIn(0, 1)]) {
             if (vm.tab == 0) PhotosTab(vm, contentPad) else AlbumsTab(vm, contentPad)
         }
+        if (vm.selection.isEmpty()) EdgePanel(vm)
         Column(
             Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
