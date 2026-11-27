@@ -203,7 +203,7 @@ private fun SearchTopBar(vm: GalleryViewModel, hint: String, scroll: TopAppBarSc
 fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
     val items by vm.timeline.collectAsState()
     val loaded by vm.loaded.collectAsState()
-    MediaTab(vm, outer, Source.Timeline, items, "Galerie", "", loaded, showFilter = true)
+    MediaTab(vm, outer, Source.Timeline, items, "", "", loaded, showFilter = true)
 }
 
 @Composable
@@ -469,23 +469,22 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
                                 onToggleHidden = { vm.toggleHidden(a.bucketIds) },
                             )
                         }
-                        item(key = "trash") {
-                            val trash by vm.trash.collectAsState()
-                            Box(
-                                Modifier.aspectRatio(1f).clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
-                                    .clickable { vm.push(Screen.Collection(Source.Trash, "Corbeille")) },
-                            ) {
-                                Icon(Icons.Filled.Delete, null, tint = Color(0xFFFF6B6B), modifier = Modifier.align(Alignment.Center).size(30.dp))
-                                Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 8.dp)) {
-                                    Text("Corbeille", fontSize = fixedSp(13f), fontWeight = FontWeight.SemiBold, maxLines = 1)
-                                    Text("${trash.size}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
                     }
                 }
+            }
+            // Corbeille à part, sous les albums
+            val trash by vm.trash.collectAsState()
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = hPad, vertical = 6.dp).height(46.dp)
+                    .clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }.padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Filled.Delete, null, tint = Color(0xFFFF6B6B), modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Corbeille", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text("${trash.size}", fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
