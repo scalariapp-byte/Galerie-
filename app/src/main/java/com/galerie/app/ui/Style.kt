@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -54,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -76,13 +78,23 @@ val VioletGradient get() = Brush.linearGradient(listOf(GradStart, GradEnd))
 fun GlowBackground(modifier: Modifier = Modifier) {
     val bg = MaterialTheme.colorScheme.background
     val p = MaterialTheme.colorScheme.primary
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "bg")
+    val phase by t.animateFloat(
+        0f, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(14000, easing = androidx.compose.animation.core.LinearEasing), androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "phase",
+    )
     Canvas(modifier.fillMaxSize()) {
         drawRect(bg)
         val w = size.width
         val h = size.height
-        drawCircle(Brush.radialGradient(listOf(p.copy(alpha = 0.30f), Color.Transparent), Offset(w * 1.05f, -h * 0.02f), w * 0.85f), w * 0.85f, Offset(w * 1.05f, -h * 0.02f))
-        drawCircle(Brush.radialGradient(listOf(GradEnd.copy(alpha = 0.32f), Color.Transparent), Offset(-w * 0.1f, h * 1.02f), w * 0.95f), w * 0.95f, Offset(-w * 0.1f, h * 1.02f))
-        drawCircle(Brush.radialGradient(listOf(p.copy(alpha = 0.22f), Color.Transparent), Offset(w * 1.1f, h * 0.95f), w * 0.7f), w * 0.7f, Offset(w * 1.1f, h * 0.95f))
+        val k = phase
+        fun blob(c: Color, x: Float, y: Float, r: Float) =
+            drawCircle(Brush.radialGradient(listOf(c, Color.Transparent), Offset(x, y), r), r, Offset(x, y))
+        blob(p.copy(alpha = 0.26f + 0.10f * k), w * (1.05f - 0.12f * k), -h * 0.02f + h * 0.05f * k, w * (0.80f + 0.12f * k))
+        blob(GradEnd.copy(alpha = 0.34f - 0.08f * k), -w * 0.1f + w * 0.15f * k, h * 1.02f, w * (0.95f - 0.1f * k))
+        blob(Color(0xFFFF5CAA).copy(alpha = 0.08f + 0.08f * k), w * (0.2f + 0.5f * k), h * (0.45f - 0.1f * k), w * 0.6f)
+        blob(p.copy(alpha = 0.22f), w * 1.1f, h * (0.95f - 0.08f * k), w * 0.7f)
         fun curve(x0: Float, y0: Float, cx1: Float, cy1: Float, cx2: Float, cy2: Float, x1: Float, y1: Float, a: Float, sw: Float) {
             val path = Path().apply { moveTo(x0, y0); cubicTo(cx1, cy1, cx2, cy2, x1, y1) }
             drawPath(path, Brush.linearGradient(listOf(Color.Transparent, p.copy(alpha = a), Color.Transparent), Offset(x0, y0), Offset(x1, y1)), style = Stroke(sw))
@@ -220,7 +232,11 @@ private fun NavTab(t: Tab, active: Boolean, modifier: Modifier, onClick: () -> U
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f * indicator)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(t.icon, t.label, tint = color, modifier = Modifier.size(22.dp))
+            val bounce by animateFloatAsState(
+                if (active) 1.15f else 1f,
+                androidx.compose.animation.core.spring(dampingRatio = 0.35f, stiffness = 400f), label = "b",
+            )
+            Icon(t.icon, t.label, tint = color, modifier = Modifier.size(22.dp).graphicsLayer { scaleX = bounce; scaleY = bounce })
         }
         Spacer(Modifier.height(3.dp))
         Text(t.label, fontSize = fixedSp(12f), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, color = color, maxLines = 1)

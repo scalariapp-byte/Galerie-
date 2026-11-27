@@ -288,7 +288,7 @@ fun MediaGrid(
             ) { i ->
                 when (val e = entries[i]) {
                     is HeaderEntry -> GroupHeader(e, selectionMode, selectionMode && selection.containsAll(e.ids))
-                    is MediaEntry -> MediaCell(e.media, e.media.id in selection, selectionMode, trashMode, corner)
+                    is MediaEntry -> Box(Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)) { MediaCell(e.media, e.media.id in selection, selectionMode, trashMode, corner) }
                 }
             }
         }
@@ -324,7 +324,7 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
     val ctx = LocalContext.current
     val scale by animateFloatAsState(if (selected) 0.84f else 1f, label = "sel")
     val request = remember(m.id, m.dateModified) {
-        ImageRequest.Builder(ctx).data(Thumb(m.uri, m.dateModified)).build()
+        ImageRequest.Builder(ctx).data(Thumb(m.uri, m.dateModified)).crossfade(180).build()
     }
     Box(Modifier.aspectRatio(1f).border(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.22f), RoundedCornerShape(corner)).background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(corner))) {
         AsyncImage(

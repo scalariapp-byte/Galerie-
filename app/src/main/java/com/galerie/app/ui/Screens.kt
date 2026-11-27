@@ -4,11 +4,13 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -400,9 +402,10 @@ private fun FilterToggle(current: Filter, onChange: (Filter) -> Unit) {
     ) {
         Filter.entries.forEach { f ->
             val on = f == current
+            val bgc by androidx.compose.animation.animateColorAsState(if (on) MaterialTheme.colorScheme.primary else Color.Transparent, label = "t")
             Box(
                 Modifier.fillMaxHeight().clip(CircleShape)
-                    .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(bgc)
                     .clickable { onChange(f) }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -534,11 +537,14 @@ private fun SmartTile(s: SmartItem, modifier: Modifier) {
 private fun AlbumTile(a: Album, hidden: Boolean, width: Dp, modifier: Modifier, onClick: () -> Unit, onToggleHidden: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val tiny = width < 72.dp
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val sc by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.93f else 1f, label = "p")
     Box(
-        modifier.clip(RoundedCornerShape(if (tiny) 12.dp else 18.dp))
+        modifier.graphicsLayer { scaleX = sc; scaleY = sc }.clip(RoundedCornerShape(if (tiny) 12.dp else 18.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(if (tiny) 12.dp else 18.dp))
-            .combinedClickable(onClick = onClick, onLongClick = { menu = true }),
+            .combinedClickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onClick, onLongClick = { menu = true }),
     ) {
         AsyncImage(Thumb(a.cover.uri, a.cover.dateModified), a.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         Box(

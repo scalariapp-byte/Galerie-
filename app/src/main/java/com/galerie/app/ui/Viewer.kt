@@ -181,7 +181,7 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
             }
         }
 
-        AnimatedVisibility(chrome && !slideshow, Modifier.align(Alignment.TopCenter), enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(chrome && !slideshow, Modifier.align(Alignment.TopCenter), enter = fadeIn() + androidx.compose.animation.slideInVertically { -it }, exit = fadeOut() + androidx.compose.animation.slideOutVertically { -it }) {
             Row(
                 Modifier.fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color(0xB3000000), Color.Transparent)))
@@ -201,7 +201,7 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
             }
         }
 
-        AnimatedVisibility(chrome && !slideshow, Modifier.align(Alignment.BottomCenter), enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(chrome && !slideshow, Modifier.align(Alignment.BottomCenter), enter = fadeIn() + androidx.compose.animation.slideInVertically { it }, exit = fadeOut() + androidx.compose.animation.slideOutVertically { it }) {
             Row(
                 Modifier.fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000))))

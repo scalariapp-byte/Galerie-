@@ -63,6 +63,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -86,13 +88,17 @@ import kotlin.math.min
 
 // ---------------- Modèle d'édition ----------------
 
-enum class PhotoFilter(val label: String) { NONE("Original"), VIVID("Vif"), BW("N&B"), SEPIA("Sépia"), WARM("Chaud"), COOL("Froid"), VINTAGE("Vintage"), FADE("Doux") }
+enum class PhotoFilter(val label: String) {
+    NONE("Original"), VIVID("Vif"), CINEMA("Cinéma"), NEON("Néon"), DRAMA("Drama"), GOLD("Golden"),
+    BW("N&B"), NOIR("Noir"), SEPIA("Sépia"), WARM("Chaud"), COOL("Froid"), VINTAGE("Vintage"), FADE("Doux"), INVERT("Négatif"),
+}
 
 data class Adjust(
     val brightness: Float = 0f, // -1..1
     val contrast: Float = 0f,   // -1..1
     val saturation: Float = 0f, // -1..1
     val warmth: Float = 0f,     // -1..1
+    val vignette: Float = 0f,   // 0..1
     val filter: PhotoFilter = PhotoFilter.NONE,
 )
 
@@ -109,6 +115,15 @@ fun colorMatrix(a: Adjust): FloatArray {
         PhotoFilter.WARM -> m.setScale(1.10f, 1.02f, 0.88f, 1f)
         PhotoFilter.COOL -> m.setScale(0.90f, 1.0f, 1.12f, 1f)
         PhotoFilter.VINTAGE -> { m.setSaturation(0.6f); concat(m, android.graphics.ColorMatrix().apply { setScale(1.08f, 1.0f, 0.85f, 1f) }); concat(m, contrastM(0.9f)) ; concat(m, translateM(18f)) }
+        PhotoFilter.CINEMA -> { // ombres sarcelle, hautes lumières orangées
+            m.set(floatArrayOf(1.12f, 0.05f, -0.08f, 0f, -6f, -0.04f, 1.02f, 0.06f, 0f, 2f, -0.06f, 0.10f, 0.95f, 0f, 14f, 0f, 0f, 0f, 1f, 0f))
+            concat(m, contrastM(1.15f))
+        }
+        PhotoFilter.NEON -> { m.setSaturation(1.8f); concat(m, contrastM(1.25f)); concat(m, android.graphics.ColorMatrix().apply { setScale(1.05f, 0.9f, 1.2f, 1f) }) }
+        PhotoFilter.DRAMA -> { m.setSaturation(0.7f); concat(m, contrastM(1.45f)); concat(m, translateM(-10f)) }
+        PhotoFilter.GOLD -> { m.setSaturation(1.15f); concat(m, android.graphics.ColorMatrix().apply { setScale(1.15f, 1.04f, 0.78f, 1f) }); concat(m, translateM(8f)) }
+        PhotoFilter.NOIR -> { m.setSaturation(0f); concat(m, contrastM(1.55f)); concat(m, translateM(-14f)) }
+        PhotoFilter.INVERT -> m.set(floatArrayOf(-1f, 0f, 0f, 0f, 255f, 0f, -1f, 0f, 0f, 255f, 0f, 0f, -1f, 0f, 255f, 0f, 0f, 0f, 1f, 0f))
         PhotoFilter.FADE -> { m.setSaturation(0.8f); concat(m, contrastM(0.82f)); concat(m, translateM(22f)) }
     }
     concat(m, android.graphics.ColorMatrix().apply { setSaturation(1f + a.saturation) })
@@ -154,7 +169,18 @@ private fun crop(src: Bitmap, r: Rect): Bitmap {
 private fun render(ctx: Context, m: Media, rot: Int, flip: Boolean, rect: Rect, adj: Adjust): Bitmap {
     val base = crop(rotateFlip(decode(ctx, m, 4096), rot, flip), rect)
     val out = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
-    Canvas(out).drawBitmap(base, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG).apply { colorFilter = ColorMatrixColorFilter(colorMatrix(adj)) })
+    val c = Canvas(out)
+    c.drawBitmap(base, 0f, 0f, Paint(Paint.FILTER_BITMAP_FLAG).apply { colorFilter = ColorMatrixColorFilter(colorMatrix(adj)) })
+    if (adj.vignette > 0f) {
+        val r = max(out.width, out.height) * 0.75f
+        c.drawRect(0f, 0f, out.width.toFloat(), out.height.toFloat(), Paint().apply {
+            shader = android.graphics.RadialGradient(
+                out.width / 2f, out.height / 2f, r,
+                intArrayOf(android.graphics.Color.TRANSPARENT, android.graphics.Color.argb((adj.vignette * 230).toInt(), 0, 0, 0)),
+                floatArrayOf(0.45f, 1f), android.graphics.Shader.TileMode.CLAMP,
+            )
+        })
+    }
     return out
 }
 
@@ -195,7 +221,7 @@ fun overwriteOriginal(ctx: Context, m: Media, bmp: Bitmap): Boolean = runCatchin
 // ---------------- Écran ----------------
 
 private enum class Tool(val label: String) { CROP("Recadrer"), ADJUST("Ajuster"), FILTER("Filtres") }
-private enum class Param(val label: String) { BRIGHT("Luminosité"), CONTRAST("Contraste"), SAT("Saturation"), WARM("Chaleur") }
+private enum class Param(val label: String) { BRIGHT("Luminosité"), CONTRAST("Contraste"), SAT("Saturation"), WARM("Chaleur"), VIGNETTE("Vignette") }
 private val Ratios = listOf("Libre" to 0f, "1:1" to 1f, "4:3" to 4f / 3f, "3:4" to 3f / 4f, "16:9" to 16f / 9f)
 private val FullRect = Rect(0f, 0f, 1f, 1f)
 
@@ -251,7 +277,22 @@ fun EditorScreen(vm: GalleryViewModel, mediaId: Long) {
             when {
                 preview == null || saving -> CircularProgressIndicator()
                 tool == Tool.CROP && rotated != null -> CropView(rotated, rect, ratio, filter) { rect = it }
-                cropped != null -> Image(cropped.asImageBitmap(), null, contentScale = ContentScale.Fit, colorFilter = filter, modifier = Modifier.fillMaxSize())
+                cropped != null -> {
+                    val img = remember(cropped) { cropped.asImageBitmap() }
+                    val vig = adj.vignette
+                    Image(
+                        img, null, contentScale = ContentScale.Fit, colorFilter = filter,
+                        modifier = Modifier.aspectRatio(cropped.width.toFloat() / cropped.height).drawWithContent {
+                            drawContent()
+                            if (vig > 0f) drawRect(
+                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                    0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = vig * 0.9f),
+                                    center = center, radius = max(size.width, size.height) * 0.75f,
+                                ),
+                            )
+                        },
+                    )
+                }
             }
         }
 
@@ -272,11 +313,12 @@ fun EditorScreen(vm: GalleryViewModel, mediaId: Long) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(Param.entries.toList()) { p -> FilterChip(param == p, { param = p }, { Text(p.label, fontSize = fixedSp(12f)) }) }
                     }
-                    val v = when (param) { Param.BRIGHT -> adj.brightness; Param.CONTRAST -> adj.contrast; Param.SAT -> adj.saturation; Param.WARM -> adj.warmth }
+                    val v = when (param) { Param.BRIGHT -> adj.brightness; Param.CONTRAST -> adj.contrast; Param.SAT -> adj.saturation; Param.WARM -> adj.warmth; Param.VIGNETTE -> adj.vignette * 2f - 1f }
                     Slider(v, { n ->
                         adj = when (param) {
                             Param.BRIGHT -> adj.copy(brightness = n); Param.CONTRAST -> adj.copy(contrast = n)
                             Param.SAT -> adj.copy(saturation = n); Param.WARM -> adj.copy(warmth = n)
+                            Param.VIGNETTE -> adj.copy(vignette = (n + 1f) / 2f)
                         }
                     }, valueRange = -1f..1f)
                 }

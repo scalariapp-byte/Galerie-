@@ -134,7 +134,17 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
     AnimatedContent(
         targetState = target,
         contentKey = { it.first },
-        transitionSpec = { fadeIn(tween(170)) togetherWith fadeOut(tween(110)) },
+        transitionSpec = {
+            val toViewer = targetState.second is Screen.Viewer
+            val fromViewer = initialState.second is Screen.Viewer
+            val forward = targetState.first.substringBefore(':').toInt() > initialState.first.substringBefore(':').toInt()
+            when {
+                toViewer -> (fadeIn(tween(220)) + androidx.compose.animation.scaleIn(tween(260), initialScale = 0.88f)) togetherWith fadeOut(tween(160))
+                fromViewer -> fadeIn(tween(200)) togetherWith (fadeOut(tween(200)) + androidx.compose.animation.scaleOut(tween(220), targetScale = 0.9f))
+                forward -> (androidx.compose.animation.slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(220))) togetherWith fadeOut(tween(150))
+                else -> (androidx.compose.animation.slideInHorizontally(tween(260)) { -it / 4 } + fadeIn(tween(220))) togetherWith fadeOut(tween(150))
+            }
+        },
         label = "nav",
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
     ) { (key, screen) ->
