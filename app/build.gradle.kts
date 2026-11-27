@@ -12,8 +12,8 @@ android {
         applicationId = "com.galerie.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = 8
+        versionName = "1.7"
     }
 
     // Clé de signature partagée : les builds locaux et CI peuvent se mettre à jour l'un l'autre.

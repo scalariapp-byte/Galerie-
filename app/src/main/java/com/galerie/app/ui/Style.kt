@@ -176,8 +176,6 @@ fun HeaderScaffold(
                     }
                     actions()
                 }
-                Spacer(Modifier.height(14.dp))
-                GlowSearchBar { vm.push(Screen.Search) }
             }
         }
     }
