@@ -161,7 +161,7 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
         if (pager.currentPage < items.lastIndex) pager.animateScrollToPage(pager.currentPage + 1) else slideshow = false
     }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(Modifier.fillMaxSize().background(ViewerBg)) {
         HorizontalPager(
             state = pager,
             beyondViewportPageCount = 1,
@@ -437,7 +437,7 @@ fun ExternalViewer(uri: Uri, type: String?, onBack: () -> Unit) {
     val isVideo = type?.startsWith("video") == true
     val player = rememberPlayer(loop = false)
     ImmersiveMode(chrome)
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Box(Modifier.fillMaxSize().background(ViewerBg)) {
         if (isVideo) {
             LaunchedEffect(uri) { player.setMediaItem(MediaItem.fromUri(uri)); player.prepare(); player.playWhenReady = true }
             AndroidView(
@@ -496,3 +496,6 @@ fun ImmersiveMode(showBars: Boolean) {
         else controller.hide(WindowInsetsCompat.Type.systemBars())
     }
 }
+
+/** Gris violacé : les images noires ou transparentes se détachent du fond. */
+val ViewerBg = Color(0xFF26222F)
