@@ -157,7 +157,7 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
     val tabs = remember { rememberSaveableStateHolderKeyed() }
     val holder = rememberSaveableStateHolder()
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val contentPad = PaddingValues(bottom = navInset + 72.dp)
+    val contentPad = PaddingValues(bottom = navInset + 60.dp)
     val tab = vm.tab.coerceIn(0, 1)
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onBackground) {
     Box(Modifier.fillMaxSize()) {

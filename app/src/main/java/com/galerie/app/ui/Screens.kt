@@ -240,7 +240,7 @@ private fun MediaTab(
                 onSelectionChange = { vm.selection = it },
                 onOpen = { vm.push(Screen.Viewer(source, it.id)) },
                 state = gridState,
-                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = top, bottom = outer.calculateBottomPadding() + 8.dp),
+                contentPadding = PaddingValues(start = 6.dp, end = 6.dp, top = top, bottom = outer.calculateBottomPadding() + 8.dp),
                 focusId = vm.lastViewedId,
             )
         }
@@ -425,8 +425,8 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
         }
         OverflowMenu(vm)
     }) { top ->
-        val hPad = 14.dp
-        val gap = 10.dp
+        val hPad = 8.dp
+        val gap = 6.dp
         Column(Modifier.fillMaxSize().padding(top = top, bottom = outer.calculateBottomPadding())) {
             // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 6.dp, bottom = 4.dp)) {

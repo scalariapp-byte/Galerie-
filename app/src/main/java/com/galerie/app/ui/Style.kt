@@ -108,13 +108,13 @@ fun AppIconTile(size: Dp = 50.dp) {
 @Composable
 fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     Box(
-        Modifier.padding(start = 8.dp).size(44.dp).clip(CircleShape)
+        Modifier.padding(start = 6.dp).size(38.dp).clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f))
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, description, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(21.dp))
+        Icon(icon, description, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(19.dp))
     }
 }
 
@@ -153,32 +153,22 @@ fun HeaderScaffold(
     actions: @Composable RowScope.() -> Unit,
     content: @Composable (Dp) -> Unit,
 ) {
-    val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    var headerPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val bg = MaterialTheme.colorScheme.background
-    Box(Modifier.fillMaxSize()) {
-        content(with(density) { headerPx.toDp() })
+    // En-tête au-dessus de la grille (pas superposé) et sans fond : aucune bande visible.
+    Column(Modifier.fillMaxSize()) {
         if (vm.selection.isNotEmpty()) {
-            Box(Modifier.background(bg.copy(alpha = 0.95f))) { SelectionTopBar(vm, selectionItems) }
+            SelectionTopBar(vm, selectionItems)
         } else {
-            Column(
-                Modifier.fillMaxWidth()
-                    .onSizeChanged { headerPx = it.height; scroll.state.heightOffsetLimit = -it.height.toFloat() }
-                    .offset { IntOffset(0, scroll.state.heightOffset.roundToInt()) }
-                    .background(bg)
-                    .statusBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 14.dp),
+            Row(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 14.dp, end = 8.dp, top = 2.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(subtitle, fontSize = fixedSp(14f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                    }
-                    actions()
-                }
+                Text(title, fontSize = fixedSp(22f), fontWeight = FontWeight.Bold, maxLines = 1)
+                Spacer(Modifier.width(8.dp))
+                Text(subtitle, fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(top = 4.dp))
+                actions()
             }
         }
+        Box(Modifier.weight(1f).fillMaxWidth()) { content(0.dp) }
     }
 }
 
@@ -193,7 +183,7 @@ fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
         Column {
             Box(Modifier.fillMaxWidth().height(0.5.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            Row(Modifier.fillMaxWidth().height(64.dp)) {
+            Row(Modifier.fillMaxWidth().height(54.dp)) {
                 tabs.forEachIndexed { i, t -> NavTab(t, i == selected, Modifier.weight(1f)) { onSelect(i) } }
             }
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -209,9 +199,9 @@ private fun NavTab(t: Tab, active: Boolean, modifier: Modifier, onClick: () -> U
         modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(12.dp))
-        Icon(t.icon, t.label, tint = color, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(7.dp))
+        Icon(t.icon, t.label, tint = color, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(2.dp))
         Text(t.label, fontSize = fixedSp(12f), fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal, color = color, maxLines = 1)
         Spacer(Modifier.weight(1f))
         Box(

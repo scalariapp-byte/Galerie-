@@ -152,8 +152,8 @@ fun MediaGrid(
     val onOpenCur by rememberUpdatedState(onOpen)
     val onCols by rememberUpdatedState(onColumnsChange)
     val selectionMode = selection.isNotEmpty()
-    val gap = if (columns >= 6) 3.dp else if (columns >= 5) 5.dp else 7.dp
-    val corner = if (columns >= 6) 6.dp else if (columns >= 5) 10.dp else 14.dp
+    val gap = if (columns >= 6) 2.dp else if (columns >= 5) 3.dp else 4.dp
+    val corner = if (columns >= 6) 5.dp else if (columns >= 5) 7.dp else 10.dp
     var autoScroll by remember { mutableFloatStateOf(0f) }
     var dragUpdate by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -306,15 +306,15 @@ fun MediaGrid(
 @Composable
 private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boolean) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 2.dp, end = 0.dp, top = 12.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().padding(start = 2.dp, end = 0.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(4.dp).height(22.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
-        Spacer(Modifier.width(12.dp))
-        Text(e.title, fontSize = fixedSp(15f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Box(Modifier.width(3.dp).height(16.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
+        Spacer(Modifier.width(8.dp))
+        Text(e.title, fontSize = fixedSp(14f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.padding(start = 12.dp, end = if (selectionMode) 8.dp else 12.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${e.ids.size}", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold)
+            Row(Modifier.padding(start = 9.dp, end = if (selectionMode) 6.dp else 9.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${e.ids.size}", fontSize = fixedSp(12f), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(4.dp))
                 if (selectionMode) Icon(
                     if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
