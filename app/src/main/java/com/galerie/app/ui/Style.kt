@@ -157,7 +157,7 @@ fun HeaderScaffold(
     var headerPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val bg = MaterialTheme.colorScheme.background
-    Box(Modifier.fillMaxSize().nestedScroll(scroll.nestedScrollConnection)) {
+    Box(Modifier.fillMaxSize()) {
         content(with(density) { headerPx.toDp() })
         if (vm.selection.isNotEmpty()) {
             Box(Modifier.background(bg.copy(alpha = 0.95f))) { SelectionTopBar(vm, selectionItems) }
