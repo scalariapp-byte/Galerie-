@@ -332,7 +332,7 @@ fun MediaCell(m: Media, selected: Boolean, selectionMode: Boolean, trashMode: Bo
     val request = remember(m.id, m.dateModified) {
         ImageRequest.Builder(ctx).data(Thumb(m.uri, m.dateModified)).build()
     }
-    Box(Modifier.aspectRatio(1f).border(if (selected) 2.dp else 0.5.dp, if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.08f), RoundedCornerShape(corner))) {
+    Box(Modifier.aspectRatio(1f).border(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.22f), RoundedCornerShape(corner)).background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(corner))) {
         AsyncImage(
             model = request,
             contentDescription = m.name,

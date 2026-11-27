@@ -663,7 +663,7 @@ fun CollectionScreen(vm: GalleryViewModel, source: Source, title: String) {
                     selection = vm.selection,
                     onSelectionChange = { vm.selection = it },
                     onOpen = { vm.push(Screen.Viewer(source, it.id)) },
-                    contentPadding = PaddingValues(bottom = inner.calculateBottomPadding() + 8.dp),
+                    contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = inner.calculateBottomPadding() + 8.dp),
                     focusId = vm.lastViewedId,
                     trashMode = trashMode,
                 )
