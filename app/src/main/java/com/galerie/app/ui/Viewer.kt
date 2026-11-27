@@ -217,7 +217,9 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
                         tint = if (current.isFavorite) Color(0xFFFF5370) else Color.White) {
                         vm.setFavorite(listOf(current), !current.isFavorite)
                     }
-                    ViewerAction(Icons.Filled.Edit, "Modifier") { Actions.edit(ctx, current) }
+                    ViewerAction(Icons.Filled.Edit, "Modifier") {
+                        if (current.isVideo || current.isGif) Actions.edit(ctx, current) else vm.push(Screen.Editor(current.id))
+                    }
                     ViewerAction(Icons.Filled.Delete, "Supprimer") { vm.trashItems(listOf(current)) }
                     Box {
                         var menu by remember { mutableStateOf(false) }
@@ -227,6 +229,7 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
                             if (!current.isVideo) MenuItem(Icons.Filled.Wallpaper, "Fond d'écran") { menu = false; wallpaper = true }
                             if (current.isVideo) MenuItem(Icons.Filled.Compress, "Compresser la vidéo") { menu = false; compress = true }
                             if (!current.isVideo) MenuItem(Icons.AutoMirrored.Filled.OpenInNew, "Définir comme…") { menu = false; Actions.setAs(ctx, current) }
+                            MenuItem(Icons.Filled.Edit, "Modifier avec une autre app…") { menu = false; Actions.edit(ctx, current) }
                             MenuItem(Icons.AutoMirrored.Filled.OpenInNew, "Ouvrir avec…") { menu = false; Actions.openWith(ctx, current) }
                             MenuItem(Icons.Filled.ContentCopy, "Copier vers un album") { menu = false; picker = false }
                             MenuItem(Icons.AutoMirrored.Filled.DriveFileMove, "Déplacer vers un album") { menu = false; picker = true }

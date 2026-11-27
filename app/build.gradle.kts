@@ -12,8 +12,8 @@ android {
         applicationId = "com.galerie.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 31
-        versionName = "4.0"
+        versionCode = 32
+        versionName = "4.1"
         resourceConfigurations += listOf("fr")
     }
 

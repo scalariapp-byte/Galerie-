@@ -78,6 +78,7 @@ sealed interface Screen {
     data object Cleanup : Screen
     data object Search : Screen
     data class Swipe(val videos: Boolean) : Screen
+    data class Editor(val mediaId: Long) : Screen
 }
 
 sealed interface UiEvent {
@@ -92,6 +93,7 @@ private sealed interface PendingOp {
     data object Favorite : PendingOp
     data class Move(val items: List<Media>, val path: String) : PendingOp
     data class Rename(val item: Media, val name: String) : PendingOp
+    data class Overwrite(val item: Media, val bitmap: android.graphics.Bitmap) : PendingOp
 }
 
 /** Dossier des fonds d'écran : exclu de Galerie et des albums, visible dans Collections. */
@@ -287,6 +289,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     fun emptyTrash() = deleteForever(trash.value)
     fun setFavorite(items: List<Media>, fav: Boolean) { if (items.isNotEmpty()) request(PendingOp.Favorite) { repo.favoriteRequest(items, fav) } }
     fun move(items: List<Media>, path: String) { if (items.isNotEmpty()) request(PendingOp.Move(items, path)) { repo.writeRequest(items) } }
+    fun overwrite(item: Media, bmp: android.graphics.Bitmap) { request(PendingOp.Overwrite(item, bmp)) { repo.writeRequest(listOf(item)) } }
     fun rename(item: Media, name: String) { request(PendingOp.Rename(item, name)) { repo.writeRequest(listOf(item)) } }
 
     fun copy(items: List<Media>, path: String) {
@@ -311,6 +314,10 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
                 val n = withContext(Dispatchers.IO) { repo.move(op.items, op.path) }
                 toast(if (n == op.items.size) "${Format.plural(n, "élément déplacé", "éléments déplacés")}"
                 else "$n/${op.items.size} déplacés (dossier non autorisé pour ce type de fichier)")
+            }
+            is PendingOp.Overwrite -> viewModelScope.launch {
+                val ok2 = withContext(Dispatchers.IO) { overwriteOriginal(getApplication(), op.item, op.bitmap) }
+                toast(if (ok2) "Photo modifiée" else "Impossible de remplacer l'original")
             }
             is PendingOp.Rename -> viewModelScope.launch {
                 val ok2 = withContext(Dispatchers.IO) { repo.rename(op.item, op.name) }
@@ -339,7 +346,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun details(m: Media, withLocation: Boolean) = withContext(Dispatchers.IO) { repo.details(m, withLocation) }
 
-    private fun toast(s: String) { events.tryEmit(UiEvent.Toast(s)) }
+    fun toast(s: String) { events.tryEmit(UiEvent.Toast(s)) }
 
     // ---------- Réglages ----------
     fun update(f: (Settings) -> Settings) {
