@@ -453,44 +453,17 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
                 }
             }
             // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 6.dp, bottom = 4.dp)) {
-                val n = albums.size
-                var layout: Triple<Int, Dp, Dp>? = null
-                if (n > 0) for (cols in 2..10) {
-                    val tw = (maxWidth - gap * (cols - 1)) / cols
-                    val rows = (n + cols - 1) / cols
-                    if (tw * rows + gap * (rows - 1) <= maxHeight) {
-                        val th = minOf(tw * 1.4f, (maxHeight - gap * (rows - 1)) / rows)
-                        layout = Triple(cols, tw, th)
-                        break
-                    }
-                }
-                val l = layout
-                if (l != null) {
-                    val (cols, tw, th) = l
-                    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                        albums.chunked(cols).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                                row.forEach { a ->
-                                    AlbumTile(
-                                        a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = tw,
-                                        modifier = Modifier.size(tw, th),
-                                        onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
-                                        onToggleHidden = { vm.toggleHidden(a.bucketIds) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
+            // Vignettes carrées compactes, 4 par ligne : moins de place, défilement si besoin.
+            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 4.dp)) {
+                run {
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(5),
+                        columns = GridCells.Fixed(4),
                         horizontalArrangement = Arrangement.spacedBy(gap),
                         verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
                         items(albums, key = { it.id }) { a ->
                             AlbumTile(
-                                a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 64.dp,
+                                a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 88.dp,
                                 modifier = Modifier.aspectRatio(1f),
                                 onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
                                 onToggleHidden = { vm.toggleHidden(a.bucketIds) },
