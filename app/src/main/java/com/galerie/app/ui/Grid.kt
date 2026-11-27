@@ -312,17 +312,10 @@ private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boo
         Box(Modifier.width(3.dp).height(16.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(8.dp))
         Text(e.title, fontSize = fixedSp(14f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.padding(start = 9.dp, end = if (selectionMode) 6.dp else 9.dp, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${e.ids.size}", fontSize = fixedSp(12f), fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(4.dp))
-                if (selectionMode) Icon(
-                    if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                    null, modifier = Modifier.size(18.dp),
-                    tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        if (selectionMode) Icon(
+            if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle, null, modifier = Modifier.size(20.dp),
+            tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

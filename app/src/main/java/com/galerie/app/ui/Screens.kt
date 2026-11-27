@@ -203,7 +203,7 @@ private fun SearchTopBar(vm: GalleryViewModel, hint: String, scroll: TopAppBarSc
 fun PhotosTab(vm: GalleryViewModel, outer: PaddingValues) {
     val items by vm.timeline.collectAsState()
     val loaded by vm.loaded.collectAsState()
-    MediaTab(vm, outer, Source.Timeline, items, "Galerie", Format.plural(items.size, "élément", "éléments"), loaded, showFilter = true)
+    MediaTab(vm, outer, Source.Timeline, items, "Galerie", "", loaded, showFilter = true)
 }
 
 @Composable
@@ -225,7 +225,8 @@ private fun MediaTab(
     val scope = rememberCoroutineScope()
     var picking by remember { mutableStateOf(false) }
     HeaderScaffold(vm, title, subtitle, items, actions = {
-        if (items.isNotEmpty()) RoundIconButton(Icons.Filled.CalendarMonth, "Aller à une date") { picking = true }
+        if (showFilter) FilterToggle(settings.filter) { f -> vm.update { it.copy(filter = f) } }
+        if (items.isNotEmpty() || showFilter) RoundIconButton(Icons.Filled.CalendarMonth, "Aller à une date") { picking = true }
         SortMenu(vm, settings, showFilter)
         OverflowMenu(vm)
     }) { top ->
@@ -312,22 +313,9 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
     var open by remember { mutableStateOf(false) }
     RoundIconButton(Icons.Filled.Tune, "Filtres") { open = true }
     if (!open) return
-    val smart = rememberSmartItems(vm)
     ModalBottomSheet(onDismissRequest = { open = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp).verticalScroll(rememberScrollState())) {
-            if (showFilter) {
-                SheetLabel("Afficher")
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    Filter.entries.forEachIndexed { i, f ->
-                        SegmentedButton(
-                            selected = settings.filter == f,
-                            onClick = { vm.update { it.copy(filter = f) } },
-                            shape = SegmentedButtonDefaults.itemShape(i, Filter.entries.size),
-                        ) { Text(f.label, fontSize = fixedSp(14f)) }
-                    }
-                }
-            }
-            SheetLabel("Trier par")
+            Text("Trier par", fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SortMode.entries.forEach { m ->
                     FilterChip(settings.sort == m, { vm.update { it.copy(sort = m) } }, { Text(m.label, fontSize = fixedSp(13f)) })
@@ -338,12 +326,27 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
                     leadingIcon = { Icon(if (settings.ascending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward, null, Modifier.size(16.dp)) },
                 )
             }
-            SheetLabel("Collections")
-            smart.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                    row.forEach { s -> CollectionTile(s, Modifier.weight(1f)) { open = false; s.open() } }
-                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-                }
+        }
+    }
+}
+
+@Composable
+private fun FilterToggle(current: Filter, onChange: (Filter) -> Unit) {
+    Row(
+        Modifier.height(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape).padding(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Filter.entries.forEach { f ->
+            val on = f == current
+            Box(
+                Modifier.fillMaxHeight().clip(CircleShape)
+                    .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { onChange(f) }.padding(horizontal = 9.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(f.label, fontSize = fixedSp(12f), fontWeight = FontWeight.SemiBold, maxLines = 1,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -381,7 +384,6 @@ private fun OverflowMenu(vm: GalleryViewModel) {
     Box {
         RoundIconButton(Icons.Filled.MoreVert, "Plus") { open = true }
         DropdownMenu(open, { open = false }) {
-            DropdownMenuItem({ Text("Libérer de l'espace") }, { open = false; vm.push(Screen.Cleanup) }, leadingIcon = { Icon(Icons.Filled.CleaningServices, null) })
             DropdownMenuItem({ Text("Corbeille") }, { open = false; vm.push(Screen.Collection(Source.Trash, "Corbeille")) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
             DropdownMenuItem({ Text("Paramètres") }, { open = false; vm.push(Screen.SettingsScreen) }, leadingIcon = { Icon(Icons.Filled.Settings, null) })
         }
@@ -410,6 +412,7 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
     HeaderScaffold(vm, "Albums", Format.plural(albums.size, "album", "albums"), emptyList(), actions = {
+        RoundIconButton(Icons.Filled.CleaningServices, "Libérer de l'espace") { vm.push(Screen.Cleanup) }
         var open by remember { mutableStateOf(false) }
         Box {
             RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
@@ -428,6 +431,27 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
         val hPad = 8.dp
         val gap = 6.dp
         Column(Modifier.fillMaxSize().padding(top = top, bottom = outer.calculateBottomPadding())) {
+            val smart = rememberSmartItems(vm)
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = hPad, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items(smart) { s ->
+                    Row(
+                        Modifier.height(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .clickable(onClick = s.open).padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(s.icon, null, tint = s.color, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text(s.label, fontSize = fixedSp(12f), fontWeight = FontWeight.Medium, maxLines = 1)
+                        if (s.count > 0) {
+                            Spacer(Modifier.width(4.dp))
+                            Text("${s.count}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        }
+                    }
+                }
+            }
             // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 6.dp, bottom = 4.dp)) {
                 val n = albums.size

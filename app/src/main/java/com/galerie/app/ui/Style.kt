@@ -108,7 +108,7 @@ fun AppIconTile(size: Dp = 50.dp) {
 @Composable
 fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     Box(
-        Modifier.padding(start = 6.dp).size(38.dp).clip(CircleShape)
+        Modifier.padding(start = 5.dp).size(36.dp).clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f))
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape)
             .clickable(onClick = onClick),
@@ -162,9 +162,11 @@ fun HeaderScaffold(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(start = 14.dp, end = 8.dp, top = 2.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(title, fontSize = fixedSp(22f), fontWeight = FontWeight.Bold, maxLines = 1)
-                Spacer(Modifier.width(8.dp))
-                Text(subtitle, fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(top = 4.dp))
+                Text(title, fontSize = fixedSp(22f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = subtitle.isEmpty()))
+                if (subtitle.isNotEmpty()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(subtitle, fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(top = 4.dp))
+                }
                 actions()
             }
         }
@@ -177,7 +179,7 @@ private data class Tab(val icon: ImageVector, val label: String)
 @Composable
 fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf(
-        Tab(Icons.Filled.Image, "Photos"),
+        Tab(Icons.Filled.Image, "Galerie"),
         Tab(Icons.Outlined.Folder, "Albums"),
     )
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
