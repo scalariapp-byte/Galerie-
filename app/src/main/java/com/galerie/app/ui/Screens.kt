@@ -331,6 +331,29 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
 }
 
 @Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text.uppercase(), fontSize = fixedSp(11f), fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp,
+        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 2.dp, top = 10.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
+private fun ToolRow(icon: ImageVector, tint: Color, label: String, value: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(label, fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        if (value.isNotEmpty()) Text(value, fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
 private fun FilterToggle(current: Filter, onChange: (Filter) -> Unit) {
     Row(
         Modifier.height(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f))
@@ -412,7 +435,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
     HeaderScaffold(vm, "Albums", Format.plural(albums.size, "album", "albums"), emptyList(), actions = {
-        RoundIconButton(Icons.Filled.CleaningServices, "Libérer de l'espace") { vm.push(Screen.Cleanup) }
         var open by remember { mutableStateOf(false) }
         Box {
             RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
@@ -430,61 +452,43 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     }) { top ->
         val hPad = 8.dp
         val gap = 6.dp
-        Column(Modifier.fillMaxSize().padding(top = top, bottom = outer.calculateBottomPadding())) {
-            val smart = rememberSmartItems(vm).filter { it.label != "Corbeille" }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = hPad, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                items(smart) { s ->
-                    Row(
-                        Modifier.height(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .clickable(onClick = s.open).padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(s.icon, null, tint = s.color, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text(s.label, fontSize = fixedSp(12f), fontWeight = FontWeight.Medium, maxLines = 1)
-                        if (s.count > 0) {
-                            Spacer(Modifier.width(4.dp))
-                            Text("${s.count}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                        }
-                    }
+        val smart = rememberSmartItems(vm).filter { it.label != "Corbeille" }
+        val trash by vm.trash.collectAsState()
+        // Une seule liste : Collections → Albums → Outils. Pas de vide, tout se suit.
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            contentPadding = PaddingValues(start = hPad, end = hPad, top = top, bottom = outer.calculateBottomPadding() + 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(gap),
+            verticalArrangement = Arrangement.spacedBy(gap),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Collections") }
+            items(smart, key = { "c" + it.label }) { s ->
+                Column(
+                    Modifier.clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .clickable(onClick = s.open).padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(s.icon, null, tint = s.color, modifier = Modifier.size(20.dp))
+                    Text(s.label, fontSize = fixedSp(11f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                    Text(if (s.count > 0) "${s.count}" else "–", fontSize = fixedSp(10f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            // Grille qui remplit exactement l'espace restant : tout est visible sans défiler.
-            // Vignettes carrées compactes, 4 par ligne : moins de place, défilement si besoin.
-            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = hPad).padding(top = 4.dp)) {
-                run {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
-                        horizontalArrangement = Arrangement.spacedBy(gap),
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        items(albums, key = { it.id }) { a ->
-                            AlbumTile(
-                                a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 88.dp,
-                                modifier = Modifier.aspectRatio(1f),
-                                onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
-                                onToggleHidden = { vm.toggleHidden(a.bucketIds) },
-                            )
-                        }
-                    }
-                }
+            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Albums · ${albums.size}") }
+            items(albums, key = { it.id }) { a ->
+                AlbumTile(
+                    a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 88.dp,
+                    modifier = Modifier.aspectRatio(1f),
+                    onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
+                    onToggleHidden = { vm.toggleHidden(a.bucketIds) },
+                )
             }
-            // Corbeille à part, sous les albums
-            val trash by vm.trash.collectAsState()
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = hPad, vertical = 6.dp).height(46.dp)
-                    .clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .clickable { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Filled.Delete, null, tint = Color(0xFFFF6B6B), modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("Corbeille", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text("${trash.size}", fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Outils") }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ToolRow(Icons.Filled.Delete, Color(0xFFFF6B6B), "Corbeille", "${trash.size}") { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }
+            }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ToolRow(Icons.Filled.CleaningServices, MaterialTheme.colorScheme.primary, "Libérer de l'espace", "") { vm.push(Screen.Cleanup) }
             }
         }
     }
