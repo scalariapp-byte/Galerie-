@@ -427,7 +427,7 @@ fun smartColor(k: SmartKind): Color = when (k) {
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
-    HeaderScaffold(vm, "Albums", Format.plural(albums.size, "album", "albums"), emptyList(), actions = {
+    HeaderScaffold(vm, "", "", emptyList(), actions = {
         var open by remember { mutableStateOf(false) }
         Box {
             RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
