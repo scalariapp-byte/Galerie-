@@ -157,7 +157,7 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
     val tabs = remember { rememberSaveableStateHolderKeyed() }
     val holder = rememberSaveableStateHolder()
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val contentPad = PaddingValues(bottom = navInset + 96.dp)
+    val contentPad = PaddingValues(bottom = navInset + 72.dp)
     val tab = vm.tab.coerceIn(0, 2)
     Box(Modifier.fillMaxSize()) {
         GlowBackground()
@@ -169,12 +169,9 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
             }
         }
         if (vm.selection.isEmpty()) EdgePanel(vm)
-        Column(
-            Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
             if (vm.selection.isNotEmpty()) {
-                SelectionBottomBar(vm, trashMode = false)
+                Box(Modifier.navigationBarsPadding().padding(bottom = 10.dp)) { SelectionBottomBar(vm, trashMode = false) }
             } else {
                 if (partial) {
                     Surface(

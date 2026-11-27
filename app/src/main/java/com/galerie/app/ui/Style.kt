@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -168,8 +171,6 @@ fun HeaderScaffold(
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIconTile()
-                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, letterSpacing = (-0.02).em, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(subtitle, fontSize = fixedSp(14f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -190,17 +191,13 @@ fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
         Tab(Icons.Outlined.PlayCircle, "Vidéos"),
         Tab(Icons.Outlined.Folder, "Albums"),
     )
-    Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
-            shadowElevation = 12.dp,
-            modifier = Modifier.weight(1f),
-        ) {
-            Row(Modifier.height(68.dp)) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+        Column {
+            Box(Modifier.fillMaxWidth().height(0.5.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Row(Modifier.fillMaxWidth().height(64.dp)) {
                 tabs.forEachIndexed { i, t -> NavTab(t, i == selected, Modifier.weight(1f)) { onSelect(i) } }
             }
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
 }
