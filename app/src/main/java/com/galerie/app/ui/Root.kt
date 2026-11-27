@@ -158,13 +158,12 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
     val holder = rememberSaveableStateHolder()
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentPad = PaddingValues(bottom = navInset + 72.dp)
-    val tab = vm.tab.coerceIn(0, 2)
+    val tab = vm.tab.coerceIn(0, 1)
     Box(Modifier.fillMaxSize()) {
         GlowBackground()
         holder.SaveableStateProvider(tabs[tab]) {
             when (tab) {
                 0 -> PhotosTab(vm, contentPad)
-                1 -> SourceTab(vm, contentPad, Source.Smart(SmartKind.VIDEOS), "Vidéos", "vidéo" to "vidéos")
                 else -> AlbumsTab(vm, contentPad)
             }
         }
@@ -222,7 +221,7 @@ private fun NavPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label
     }
 }
 
-private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-videos", "tab-albums")
+private fun rememberSaveableStateHolderKeyed() = listOf("tab-photos", "tab-albums")
 
 @Composable
 private fun PermissionScreen(onGrant: () -> Unit, onSettings: () -> Unit) {

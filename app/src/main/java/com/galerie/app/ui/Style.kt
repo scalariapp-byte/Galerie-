@@ -188,7 +188,6 @@ private data class Tab(val icon: ImageVector, val label: String)
 fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf(
         Tab(Icons.Filled.Image, "Photos"),
-        Tab(Icons.Outlined.PlayCircle, "Vidéos"),
         Tab(Icons.Outlined.Folder, "Albums"),
     )
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
