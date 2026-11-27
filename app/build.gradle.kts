@@ -12,8 +12,8 @@ android {
         applicationId = "com.galerie.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 16
-        versionName = "2.5"
+        versionCode = 17
+        versionName = "2.6"
     }
 
     // Clé de signature partagée : les builds locaux et CI peuvent se mettre à jour l'un l'autre.
@@ -59,6 +59,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    // Active les profils de compilation fournis par Compose : démarrage et défilement plus rapides
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-gif:2.7.0")
     implementation("me.saket.telephoto:zoomable-image-coil:0.14.0")

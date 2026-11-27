@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -57,6 +58,9 @@ data class Settings(
     val dynamicColor: Boolean = false,
     val panelLeft: Boolean = false,
 )
+
+/** Seuls les réglages qui changent le contenu d'une liste (pas les colonnes, le thème…). */
+fun Settings.queryOnly() = Settings(sort = sort, ascending = ascending, filter = filter, hiddenAlbums = hiddenAlbums)
 
 sealed interface Source {
     data object Timeline : Source
@@ -105,10 +109,10 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     var selection by mutableStateOf<Set<Long>>(emptySet())
     var lastViewedId by mutableStateOf<Long?>(null)
 
-    val timeline: StateFlow<List<Media>> = combine(all, settings) { a, s -> resolve(Source.Timeline, a, emptyList(), s) }
+    val timeline: StateFlow<List<Media>> = combine(all, settings.map { it.queryOnly() }.distinctUntilChanged()) { a, s -> resolve(Source.Timeline, a, emptyList(), s) }
         .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val albums: StateFlow<List<Album>> = combine(all, settings) { a, s -> buildAlbums(a, s.albumSort) }
+    val albums: StateFlow<List<Album>> = combine(all, settings.map { it.albumSort }.distinctUntilChanged()) { a, sort -> buildAlbums(a, sort) }
         .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val smartCounts: StateFlow<Map<SmartKind, Pair<Int, Long>>> = all.map { a ->

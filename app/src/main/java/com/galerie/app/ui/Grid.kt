@@ -280,14 +280,15 @@ fun MediaGrid(
                 },
         ) {
             header?.invoke(this)
-            entries.forEach { e ->
-                when (e) {
-                    is HeaderEntry -> item(key = e.key, span = { GridItemSpan(maxLineSpan) }, contentType = 0) {
-                        GroupHeader(e, selectionMode, selectionMode && selection.containsAll(e.ids))
-                    }
-                    is MediaEntry -> item(key = e.key, contentType = 1) {
-                        MediaCell(e.media, e.media.id in selection, selectionMode, trashMode, corner)
-                    }
+            items(
+                count = entries.size,
+                key = { entries[it].key },
+                span = { if (entries[it] is HeaderEntry) GridItemSpan(maxLineSpan) else GridItemSpan(1) },
+                contentType = { if (entries[it] is HeaderEntry) 0 else 1 },
+            ) { i ->
+                when (val e = entries[i]) {
+                    is HeaderEntry -> GroupHeader(e, selectionMode, selectionMode && selection.containsAll(e.ids))
+                    is MediaEntry -> MediaCell(e.media, e.media.id in selection, selectionMode, trashMode, corner)
                 }
             }
         }

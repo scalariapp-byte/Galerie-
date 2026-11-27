@@ -63,7 +63,8 @@ import kotlinx.coroutines.withContext
 fun rememberItems(vm: GalleryViewModel, source: Source): State<List<Media>> {
     val all by vm.all.collectAsState()
     val trash by vm.trash.collectAsState()
-    val settings by vm.settings.collectAsState()
+    val full by vm.settings.collectAsState()
+    val settings = remember(full) { full.queryOnly() }
     val state = remember(source) { mutableStateOf(vm.resolve(source, all, trash, settings)) }
     LaunchedEffect(source, all, trash, settings) {
         state.value = withContext(Dispatchers.Default) { vm.resolve(source, all, trash, settings) }

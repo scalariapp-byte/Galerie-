@@ -74,6 +74,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.DatePickerDialog
@@ -297,43 +306,71 @@ private fun DateJumpDialog(items: List<Media>, onDismiss: () -> Unit, onPick: (L
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        RoundIconButton(Icons.Filled.Tune, "Trier et filtrer") { open = true }
-        DropdownMenu(open, { open = false }) {
+    RoundIconButton(Icons.Filled.Tune, "Filtres") { open = true }
+    if (!open) return
+    val smart = rememberSmartItems(vm)
+    ModalBottomSheet(onDismissRequest = { open = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp).verticalScroll(rememberScrollState())) {
             if (showFilter) {
-                Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Filter.entries.forEach { f ->
-                        FilterChip(settings.filter == f, { vm.update { it.copy(filter = f) } }, { Text(f.label) })
+                SheetLabel("Afficher")
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    Filter.entries.forEachIndexed { i, f ->
+                        SegmentedButton(
+                            selected = settings.filter == f,
+                            onClick = { vm.update { it.copy(filter = f) } },
+                            shape = SegmentedButtonDefaults.itemShape(i, Filter.entries.size),
+                        ) { Text(f.label, fontSize = fixedSp(14f)) }
                     }
                 }
-                HorizontalDivider()
             }
-            Text("Trier par", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-            SortMode.entries.forEach { m ->
-                DropdownMenuItem(
-                    text = { Text(m.label) },
-                    leadingIcon = { RadioButton(settings.sort == m, null) },
-                    onClick = { vm.update { it.copy(sort = m) } },
+            SheetLabel("Trier par")
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SortMode.entries.forEach { m ->
+                    FilterChip(settings.sort == m, { vm.update { it.copy(sort = m) } }, { Text(m.label, fontSize = fixedSp(13f)) })
+                }
+                FilterChip(
+                    settings.ascending, { vm.update { it.copy(ascending = !it.ascending) } },
+                    { Text(if (settings.ascending) "Croissant" else "Décroissant", fontSize = fixedSp(13f)) },
+                    leadingIcon = { Icon(if (settings.ascending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward, null, Modifier.size(16.dp)) },
                 )
             }
-            DropdownMenuItem(
-                text = { Text("Ordre croissant") },
-                leadingIcon = { Checkbox(settings.ascending, null) },
-                onClick = { vm.update { it.copy(ascending = !it.ascending) } },
-            )
-            HorizontalDivider()
-            Text("Collections", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-            rememberSmartItems(vm).forEach { s ->
-                DropdownMenuItem(
-                    text = { Text(s.label) },
-                    leadingIcon = { Icon(s.icon, null, tint = s.color) },
-                    trailingIcon = { if (s.count > 0) Text("${s.count}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    onClick = { open = false; s.open() },
-                )
+            SheetLabel("Collections")
+            smart.chunked(3).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+                    row.forEach { s -> CollectionTile(s, Modifier.weight(1f)) { open = false; s.open() } }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(
+        text.uppercase(), fontSize = fixedSp(12f), fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp,
+        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 18.dp, bottom = 10.dp),
+    )
+}
+
+@Composable
+private fun CollectionTile(s: SmartItem, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(34.dp).background(s.color.copy(alpha = 0.18f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(s.icon, null, tint = s.color, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(s.label, fontSize = fixedSp(13f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (s.count > 0) "${s.count}" else "–", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
