@@ -2,7 +2,6 @@ name: Build APK
 on:
   push:
     branches: ['**']
-    tags: ['v*']
   workflow_dispatch:
 permissions:
   contents: write
@@ -17,12 +16,17 @@ jobs:
       - run: cp app/build/outputs/apk/release/app-release.apk Galerie.apk
       - uses: actions/upload-artifact@v4
         with: { name: galerie-apk, path: Galerie.apk }
+      - name: Lire la version
+        id: v
+        run: echo "name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
       - name: Publier la release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: Galerie.apk
-          name: Galerie ${{ github.ref_name }}
+          tag_name: v${{ steps.v.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          name: Galerie ${{ steps.v.outputs.name }}
+          make_latest: true
           body: |
             Galerie, application de galerie Android (Android 11+).
             Télécharger **Galerie.apk** ci-dessous, l'ouvrir sur le téléphone et autoriser l'installation.
