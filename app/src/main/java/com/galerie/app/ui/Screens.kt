@@ -74,6 +74,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -195,6 +204,7 @@ fun SourceTab(vm: GalleryViewModel, outer: PaddingValues, source: Source, title:
     MediaTab(vm, outer, source, items, title, Format.plural(items.size, unit.first, unit.second), loaded, showFilter = false)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MediaTab(
     vm: GalleryViewModel, outer: PaddingValues, source: Source, items: List<Media>,
@@ -202,7 +212,11 @@ private fun MediaTab(
 ) {
     val settings by vm.settings.collectAsState()
     val entries = rememberEntries(items, settings, dated = true)
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    var picking by remember { mutableStateOf(false) }
     HeaderScaffold(vm, title, subtitle, items, actions = {
+        if (items.isNotEmpty()) RoundIconButton(Icons.Filled.CalendarMonth, "Aller à une date") { picking = true }
         SortMenu(vm, settings, showFilter)
         OverflowMenu(vm)
     }) { top ->
@@ -216,10 +230,70 @@ private fun MediaTab(
                 selection = vm.selection,
                 onSelectionChange = { vm.selection = it },
                 onOpen = { vm.push(Screen.Viewer(source, it.id)) },
+                state = gridState,
                 contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = top, bottom = outer.calculateBottomPadding() + 8.dp),
                 focusId = vm.lastViewedId,
             )
         }
+    }
+    if (picking) {
+        DateJumpDialog(items, onDismiss = { picking = false }) { day ->
+            picking = false
+            val byAdded = settings.sort == SortMode.ADDED
+            val first = entries.indexOfFirst { e ->
+                e is MediaEntry && Format.dayKey(if (byAdded) e.media.dateAdded else e.media.date) == day
+            }
+            // On remonte sur l'en-tête du jour s'il existe
+            val idx = if (first > 0 && entries[first - 1] is HeaderEntry) first - 1 else first
+            if (idx >= 0) scope.launch { gridState.scrollToItem(idx) }
+        }
+    }
+}
+
+/**
+ * Calendrier : seuls les jours qui contiennent des photos sont sélectionnables,
+ * et le nombre de photos du jour choisi s'affiche en titre.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateJumpDialog(items: List<Media>, onDismiss: () -> Unit, onPick: (Long) -> Unit) {
+    val perDay = remember(items) { items.groupingBy { Format.dayKey(it.date) }.eachCount() }
+    val years = remember(perDay) { perDay.keys.map { java.time.LocalDate.ofEpochDay(it).year }.toSet() }
+    val latest = remember(items) { items.maxOfOrNull { it.date } }
+    val state = rememberDatePickerState(
+        initialDisplayedMonthMillis = latest?.let { Format.dayKey(it) * 86_400_000L },
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = (utcTimeMillis / 86_400_000L) in perDay
+            override fun isSelectableYear(year: Int) = year in years
+        },
+    )
+    val selectedDay = state.selectedDateMillis?.let { it / 86_400_000L }
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(enabled = selectedDay != null, onClick = { selectedDay?.let(onPick) }) { Text("Afficher") }
+        },
+        dismissButton = { TextButton(onDismiss) { Text("Annuler") } },
+    ) {
+        DatePicker(
+            state = state,
+            title = {
+                Text(
+                    "Jours en clair = jours avec des photos",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                )
+            },
+            headline = {
+                val n = selectedDay?.let { perDay[it] } ?: 0
+                Text(
+                    if (selectedDay == null) "Choisissez un jour" else Format.plural(n, "élément ce jour-là", "éléments ce jour-là"),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+                )
+            },
+            showModeToggle = false,
+        )
     }
 }
 
@@ -752,7 +826,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.4") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.5") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }

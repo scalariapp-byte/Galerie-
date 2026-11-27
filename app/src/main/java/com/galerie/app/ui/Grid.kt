@@ -70,6 +70,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -172,9 +174,17 @@ fun MediaGrid(
         }
     }
 
-    fun keyAt(p: Offset): Any? = state.layoutInfo.visibleItemsInfo.firstOrNull {
-        p.x >= it.offset.x && p.x < it.offset.x + it.size.width && p.y >= it.offset.y && p.y < it.offset.y + it.size.height
-    }?.key
+    val currentPadding by rememberUpdatedState(contentPadding)
+    // Les offsets des éléments ne comptent pas la marge intérieure (en-tête en haut, marge à gauche) :
+    // on convertit d'abord la position du doigt dans ce repère.
+    fun keyAt(p: Offset): Any? {
+        val info = state.layoutInfo
+        val x = p.x - with(density) { currentPadding.calculateStartPadding(LayoutDirection.Ltr).toPx() }
+        val y = p.y + info.viewportStartOffset
+        return info.visibleItemsInfo.firstOrNull {
+            x >= it.offset.x && x < it.offset.x + it.size.width && y >= it.offset.y && y < it.offset.y + it.size.height
+        }?.key
+    }
 
     fun indexOfKey(k: Any?): Int = if (k == null) -1 else currentEntries.indexOfFirst { it.key == k }
 
