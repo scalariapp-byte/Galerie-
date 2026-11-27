@@ -431,7 +431,7 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
         val hPad = 8.dp
         val gap = 6.dp
         Column(Modifier.fillMaxSize().padding(top = top, bottom = outer.calculateBottomPadding())) {
-            val smart = rememberSmartItems(vm)
+            val smart = rememberSmartItems(vm).filter { it.label != "Corbeille" }
             LazyRow(
                 contentPadding = PaddingValues(horizontal = hPad, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -468,6 +468,21 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
                                 onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
                                 onToggleHidden = { vm.toggleHidden(a.bucketIds) },
                             )
+                        }
+                        item(key = "trash") {
+                            val trash by vm.trash.collectAsState()
+                            Box(
+                                Modifier.aspectRatio(1f).clip(RoundedCornerShape(18.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+                                    .clickable { vm.push(Screen.Collection(Source.Trash, "Corbeille")) },
+                            ) {
+                                Icon(Icons.Filled.Delete, null, tint = Color(0xFFFF6B6B), modifier = Modifier.align(Alignment.Center).size(30.dp))
+                                Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                                    Text("Corbeille", fontSize = fixedSp(13f), fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text("${trash.size}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                         }
                     }
                 }
