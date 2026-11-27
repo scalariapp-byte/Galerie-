@@ -428,6 +428,15 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
     HeaderScaffold(vm, "", "", emptyList(), actions = {
+        val trashCount = vm.trash.collectAsState().value.size
+        Box {
+            RoundIconButton(Icons.Filled.Delete, "Corbeille") { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }
+            if (trashCount > 0) Text(
+                "$trashCount", fontSize = fixedSp(9f), fontWeight = FontWeight.Bold, color = Color.White,
+                modifier = Modifier.align(Alignment.TopEnd).background(Color(0xFFFF5370), CircleShape).padding(horizontal = 5.dp, vertical = 1.dp),
+            )
+        }
+        RoundIconButton(Icons.Filled.CleaningServices, "Libérer de l'espace") { vm.push(Screen.Cleanup) }
         var open by remember { mutableStateOf(false) }
         Box {
             RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
@@ -446,7 +455,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
         val hPad = 8.dp
         val gap = 6.dp
         val smart = rememberSmartItems(vm).filter { it.label != "Corbeille" }
-        val trash by vm.trash.collectAsState()
         // Une seule liste : Collections → Albums → Outils. Pas de vide, tout se suit.
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
@@ -455,10 +463,9 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
             verticalArrangement = Arrangement.spacedBy(gap),
             modifier = Modifier.fillMaxSize(),
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Collections") }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    smart.forEach { s ->
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 4.dp)) {
+                    items(smart) { s ->
                         Row(
                             Modifier.height(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                 .clickable(onClick = s.open).padding(horizontal = 10.dp),
@@ -475,7 +482,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
                     }
                 }
             }
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Albums · ${albums.size}") }
             items(albums, key = { it.id }) { a ->
                 AlbumTile(
                     a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 88.dp,
@@ -483,13 +489,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
                     onClick = { vm.push(Screen.Collection(Source.AlbumSrc(a.bucketIds), a.name)) },
                     onToggleHidden = { vm.toggleHidden(a.bucketIds) },
                 )
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Outils") }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                ToolRow(Icons.Filled.Delete, Color(0xFFFF6B6B), "Corbeille", "${trash.size}") { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                ToolRow(Icons.Filled.CleaningServices, MaterialTheme.colorScheme.primary, "Libérer de l'espace", "") { vm.push(Screen.Cleanup) }
             }
         }
     }
