@@ -303,6 +303,14 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
     Box {
         RoundIconButton(Icons.Filled.Tune, "Trier et filtrer") { open = true }
         DropdownMenu(open, { open = false }) {
+            if (showFilter) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Filter.entries.forEach { f ->
+                        FilterChip(settings.filter == f, { vm.update { it.copy(filter = f) } }, { Text(f.label) })
+                    }
+                }
+                HorizontalDivider()
+            }
             Text("Trier par", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             SortMode.entries.forEach { m ->
                 DropdownMenuItem(
@@ -325,68 +333,6 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
                     trailingIcon = { if (s.count > 0) Text("${s.count}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { open = false; s.open() },
                 )
-            }
-            if (showFilter) {
-                HorizontalDivider()
-                Text("Afficher", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
-                Filter.entries.forEach { f ->
-                    DropdownMenuItem(
-                        text = { Text(f.label) },
-                        leadingIcon = { RadioButton(settings.filter == f, null) },
-                        onClick = { vm.update { it.copy(filter = f) }; open = false },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverflowMenu(vm: GalleryViewModel) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        RoundIconButton(Icons.Filled.MoreVert, "Plus") { open = true }
-        DropdownMenu(open, { open = false }) {
-            DropdownMenuItem({ Text("Libérer de l'espace") }, { open = false; vm.push(Screen.Cleanup) }, leadingIcon = { Icon(Icons.Filled.CleaningServices, null) })
-            DropdownMenuItem({ Text("Corbeille") }, { open = false; vm.push(Screen.Collection(Source.Trash, "Corbeille")) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
-            DropdownMenuItem({ Text("Paramètres") }, { open = false; vm.push(Screen.SettingsScreen) }, leadingIcon = { Icon(Icons.Filled.Settings, null) })
-        }
-    }
-}
-
-// ======================= ALBUMS (tout visible sans défiler) =======================
-
-data class SmartItem(val icon: ImageVector, val label: String, val count: Int, val color: Color, val open: () -> Unit)
-
-fun smartColor(k: SmartKind): Color = when (k) {
-    SmartKind.FAVORITES -> Color(0xFFFF5C8A)
-    SmartKind.VIDEOS -> Color(0xFF5AA9FF)
-    SmartKind.SCREENSHOTS -> Color(0xFFB388FF)
-    SmartKind.RECENT -> Color(0xFFFFC14D)
-    SmartKind.GIF -> Color(0xFF4DE0A0)
-    SmartKind.HD -> Color(0xFF4DD8FF)
-    SmartKind.PANORAMA -> Color(0xFF8C9EFF)
-    SmartKind.LARGE -> Color(0xFFFF9A4D)
-    SmartKind.DUPLICATES -> Color(0xFF26D0C0)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
-    val albums by vm.albums.collectAsState()
-    val settings by vm.settings.collectAsState()
-    HeaderScaffold(vm, "Albums", Format.plural(albums.size, "album", "albums"), emptyList(), actions = {
-        var open by remember { mutableStateOf(false) }
-        Box {
-            RoundIconButton(Icons.Filled.Sort, "Trier") { open = true }
-            DropdownMenu(open, { open = false }) {
-                AlbumSort.entries.forEach { s ->
-                    DropdownMenuItem(
-                        text = { Text(s.label) },
-                        leadingIcon = { RadioButton(settings.albumSort == s, null) },
-                        onClick = { vm.update { it.copy(albumSort = s) }; open = false },
-                    )
-                }
             }
         }
         OverflowMenu(vm)

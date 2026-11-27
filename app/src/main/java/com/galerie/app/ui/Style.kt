@@ -166,7 +166,7 @@ fun HeaderScaffold(
                 Modifier.fillMaxWidth()
                     .onSizeChanged { headerPx = it.height; scroll.state.heightOffsetLimit = -it.height.toFloat() }
                     .offset { IntOffset(0, scroll.state.heightOffset.roundToInt()) }
-                    .background(Brush.verticalGradient(0f to bg.copy(alpha = 0.92f), 0.75f to bg.copy(alpha = 0.80f), 1f to Color.Transparent))
+                    .background(bg)
                     .statusBarsPadding()
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 14.dp),
             ) {
