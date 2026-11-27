@@ -77,6 +77,7 @@ sealed interface Screen {
     data object SettingsScreen : Screen
     data object Cleanup : Screen
     data object Search : Screen
+    data class Swipe(val videos: Boolean) : Screen
 }
 
 sealed interface UiEvent {
@@ -349,6 +350,18 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             dynamicColor = prefs.getBoolean("dyn", d.dynamicColor),
             panelLeft = prefs.getBoolean("panelLeft", d.panelLeft),
         )
+    }
+
+    // ---------- Tri par glissement : éléments déjà « gardés » ----------
+    fun keptIds(): Set<Long> = prefs.getStringSet("kept", emptySet())!!.mapNotNull { it.toLongOrNull() }.toSet()
+    fun setKept(id: Long, kept: Boolean) {
+        val s = keptIds().toMutableSet()
+        if (kept) s += id else s -= id
+        prefs.edit().putStringSet("kept", s.map { it.toString() }.toSet()).apply()
+    }
+    fun resetKept(videos: Boolean) {
+        val ids = all.value.filter { it.isVideo == videos }.map { it.id }.toSet()
+        prefs.edit().putStringSet("kept", (keptIds() - ids).map { it.toString() }.toSet()).apply()
     }
 
     fun toggleHidden(ids: Set<Long>) = update {

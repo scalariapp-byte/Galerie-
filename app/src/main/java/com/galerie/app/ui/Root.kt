@@ -146,6 +146,7 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                 Screen.SettingsScreen -> SettingsScreen(vm)
                 Screen.Cleanup -> CleanupScreen(vm)
                 Screen.Search -> SearchScreen(vm)
+                is Screen.Swipe -> SwipeScreen(vm, screen.videos)
             }
         }
     }

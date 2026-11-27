@@ -544,8 +544,8 @@ private fun AlbumTile(a: Album, hidden: Boolean, width: Dp, modifier: Modifier, 
         )
         Column(Modifier.align(Alignment.BottomStart).padding(horizontal = if (tiny) 6.dp else 10.dp, vertical = if (tiny) 5.dp else 8.dp)) {
             Text(
-                a.name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                fontSize = fixedSp(if (tiny) 10f else 13f), lineHeight = fixedSp(if (tiny) 12f else 16f),
+                a.name, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                fontSize = fixedSp(if (tiny) 10f else 12f), lineHeight = fixedSp(if (tiny) 12f else 14f),
             )
             Text(
                 "${a.count}", color = Color.White.copy(alpha = 0.72f),
@@ -775,6 +775,12 @@ fun CleanupScreen(vm: GalleryViewModel) {
                 Spacer(Modifier.height(16.dp))
             }
             item {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                    SwipeEntry("Trier les photos", "${photos.size} photos", Icons.Filled.Photo, Modifier.weight(1f)) { vm.push(Screen.Swipe(false)) }
+                    SwipeEntry("Trier les vidéos", "${videos.size} vidéos", Icons.Filled.Videocam, Modifier.weight(1f)) { vm.push(Screen.Swipe(true)) }
+                }
+            }
+            item {
                 Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
                     val dup = counts[SmartKind.DUPLICATES] ?: (0 to 0L)
                     val large = counts[SmartKind.LARGE] ?: (0 to 0L)
@@ -786,6 +792,19 @@ fun CleanupScreen(vm: GalleryViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SwipeEntry(title: String, subtitle: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(22.dp)).background(VioletGradient).clickable(onClick = onClick).padding(16.dp),
+    ) {
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(26.dp))
+        Spacer(Modifier.height(10.dp))
+        Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = fixedSp(15f))
+        Text(subtitle, color = Color.White.copy(alpha = 0.8f), fontSize = fixedSp(12f))
+        Text("← supprimer · garder →", color = Color.White.copy(alpha = 0.7f), fontSize = fixedSp(11f), modifier = Modifier.padding(top = 6.dp))
     }
 }
 
