@@ -1,5 +1,11 @@
 name: Build APK
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,5 +14,15 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - run: ./gradlew assembleRelease --no-daemon
+      - run: cp app/build/outputs/apk/release/app-release.apk Galerie.apk
       - uses: actions/upload-artifact@v4
-        with: { name: galerie-apk, path: app/build/outputs/apk/release/*.apk }
+        with: { name: galerie-apk, path: Galerie.apk }
+      - name: Publier la release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Galerie.apk
+          name: Galerie ${{ github.ref_name }}
+          body: |
+            Galerie, application de galerie Android (Android 11+).
+            Télécharger **Galerie.apk** ci-dessous, l'ouvrir sur le téléphone et autoriser l'installation.
