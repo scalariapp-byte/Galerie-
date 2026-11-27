@@ -310,7 +310,7 @@ private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boo
     ) {
         Box(Modifier.width(4.dp).height(22.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(12.dp))
-        Text(e.title, fontSize = fixedSp(20f), fontWeight = FontWeight.Bold, letterSpacing = (-0.015).em, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(e.title, fontSize = fixedSp(20f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Row(Modifier.padding(start = 12.dp, end = if (selectionMode) 8.dp else 12.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("${e.ids.size}", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold)

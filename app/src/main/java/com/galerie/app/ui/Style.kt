@@ -172,7 +172,7 @@ fun HeaderScaffold(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, letterSpacing = (-0.02).em, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(subtitle, fontSize = fixedSp(14f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     actions()

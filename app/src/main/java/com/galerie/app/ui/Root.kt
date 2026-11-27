@@ -167,7 +167,6 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                 else -> AlbumsTab(vm, contentPad)
             }
         }
-        if (vm.selection.isEmpty()) EdgePanel(vm)
         Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.CenterHorizontally) {
             if (vm.selection.isNotEmpty()) {
                 Box(Modifier.navigationBarsPadding().padding(bottom = 10.dp)) { SelectionBottomBar(vm, trashMode = false) }

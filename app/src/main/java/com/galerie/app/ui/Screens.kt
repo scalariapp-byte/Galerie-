@@ -316,6 +316,16 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
                 leadingIcon = { Checkbox(settings.ascending, null) },
                 onClick = { vm.update { it.copy(ascending = !it.ascending) } },
             )
+            HorizontalDivider()
+            Text("Collections", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            rememberSmartItems(vm).forEach { s ->
+                DropdownMenuItem(
+                    text = { Text(s.label) },
+                    leadingIcon = { Icon(s.icon, null, tint = s.color) },
+                    trailingIcon = { if (s.count > 0) Text("${s.count}", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { open = false; s.open() },
+                )
+            }
             if (showFilter) {
                 HorizontalDivider()
                 Text("Afficher", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
