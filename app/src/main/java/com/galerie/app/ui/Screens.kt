@@ -224,8 +224,9 @@ private fun MediaTab(
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
     var picking by remember { mutableStateOf(false) }
-    HeaderScaffold(vm, title, subtitle, items, actions = {
-        if (showFilter) FilterToggle(settings.filter) { f -> vm.update { it.copy(filter = f) } }
+    HeaderScaffold(vm, title, subtitle, items, leading = if (showFilter) {
+        { FilterToggle(settings.filter) { f -> vm.update { it.copy(filter = f) } } }
+    } else null, actions = {
         if (items.isNotEmpty() || showFilter) RoundIconButton(Icons.Filled.CalendarMonth, "Aller à une date") { picking = true }
         SortMenu(vm, settings, showFilter)
         OverflowMenu(vm)
@@ -356,8 +357,8 @@ private fun ToolRow(icon: ImageVector, tint: Color, label: String, value: String
 @Composable
 private fun FilterToggle(current: Filter, onChange: (Filter) -> Unit) {
     Row(
-        Modifier.height(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.8f))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape).padding(3.dp),
+        Modifier.height(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), CircleShape).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Filter.entries.forEach { f ->
@@ -365,10 +366,10 @@ private fun FilterToggle(current: Filter, onChange: (Filter) -> Unit) {
             Box(
                 Modifier.fillMaxHeight().clip(CircleShape)
                     .background(if (on) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .clickable { onChange(f) }.padding(horizontal = 9.dp),
+                    .clickable { onChange(f) }.padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(f.label, fontSize = fixedSp(12f), fontWeight = FontWeight.SemiBold, maxLines = 1,
+                Text(f.label, fontSize = fixedSp(13f), fontWeight = FontWeight.SemiBold, maxLines = 1,
                     color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

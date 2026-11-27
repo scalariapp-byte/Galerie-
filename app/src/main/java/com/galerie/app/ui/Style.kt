@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -108,13 +109,10 @@ fun AppIconTile(size: Dp = 50.dp) {
 @Composable
 fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     Box(
-        Modifier.padding(start = 14.dp).size(36.dp).clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape)
-            .clickable(onClick = onClick),
+        Modifier.size(42.dp).clip(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, description, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(19.dp))
+        Icon(icon, description, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(21.dp))
     }
 }
 
@@ -151,6 +149,7 @@ fun HeaderScaffold(
     subtitle: String,
     selectionItems: List<com.galerie.app.data.Media>,
     actions: @Composable RowScope.() -> Unit,
+    leading: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable (Dp) -> Unit,
 ) {
     // En-tête au-dessus de la grille (pas superposé) et sans fond : aucune bande visible.
@@ -159,15 +158,25 @@ fun HeaderScaffold(
             SelectionTopBar(vm, selectionItems)
         } else {
             Row(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 14.dp, end = 8.dp, top = 2.dp, bottom = 4.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                leading?.invoke(this)
                 Text(title, fontSize = fixedSp(22f), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = subtitle.isEmpty()))
                 if (subtitle.isNotEmpty()) {
                     Spacer(Modifier.width(8.dp))
                     Text(subtitle, fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(top = 4.dp))
                 }
-                actions()
+                Spacer(Modifier.width(10.dp))
+                // Toutes les actions regroupées dans une seule pilule : plus net qu'une série de ronds.
+                Row(
+                    Modifier.height(44.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), CircleShape)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) { actions() }
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) { content(0.dp) }
@@ -182,10 +191,14 @@ fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
         Tab(Icons.Filled.Image, "Galerie"),
         Tab(Icons.Outlined.Folder, "Albums"),
     )
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column {
-            Box(Modifier.fillMaxWidth().height(0.5.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            Row(Modifier.fillMaxWidth().height(54.dp)) {
+            Row(Modifier.fillMaxWidth().height(62.dp).padding(horizontal = 24.dp)) {
                 tabs.forEachIndexed { i, t -> NavTab(t, i == selected, Modifier.weight(1f)) { onSelect(i) } }
             }
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -200,16 +213,16 @@ private fun NavTab(t: Tab, active: Boolean, modifier: Modifier, onClick: () -> U
     Column(
         modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Spacer(Modifier.height(7.dp))
-        Icon(t.icon, t.label, tint = color, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.height(2.dp))
-        Text(t.label, fontSize = fixedSp(12f), fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal, color = color, maxLines = 1)
-        Spacer(Modifier.weight(1f))
         Box(
-            Modifier.width(30.dp * indicator).height(3.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = indicator)),
-        )
-        Spacer(Modifier.height(4.dp))
+            Modifier.width(60.dp).height(30.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.20f * indicator)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(t.icon, t.label, tint = color, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(3.dp))
+        Text(t.label, fontSize = fixedSp(12f), fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, color = color, maxLines = 1)
     }
 }
