@@ -826,7 +826,7 @@ fun SettingsScreen(vm: GalleryViewModel) {
                 }
             }
             item { Section("À propos") }
-            item { ListItem(headlineContent = { Text("Galerie 1.5") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
+            item { ListItem(headlineContent = { Text("Galerie 1.6") }, supportingContent = { Text("Aucune donnée ne quitte le téléphone.") }) }
         }
     }
 }

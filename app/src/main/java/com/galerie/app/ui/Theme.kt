@@ -80,4 +80,6 @@ fun GalerieTheme(theme: ThemeMode, dynamicColor: Boolean = false, content: @Comp
 /** Taille de texte indépendante du réglage « taille de police » : pour les zones très denses. */
 @Composable
 @ReadOnlyComposable
-fun fixedSp(value: Float): TextUnit = with(LocalDensity.current) { Dp(value).toSp() }
+fun fixedSp(value: Float): TextUnit = with(LocalDensity.current) {
+    if (value >= 0f) Dp(value).toSp() else (-Dp(-value).toSp().value).sp
+}

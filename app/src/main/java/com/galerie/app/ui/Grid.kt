@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -229,7 +230,7 @@ fun MediaGrid(
                                     if (currentSelection.isEmpty()) onOpenCur(e.media)
                                     else onSel(if (e.media.id in currentSelection) currentSelection - e.media.id else currentSelection + e.media.id)
                                 }
-                                is HeaderEntry -> run {
+                                is HeaderEntry -> if (currentSelection.isNotEmpty()) {
                                     up.consume()
                                     val all = currentSelection.containsAll(e.ids)
                                     onSel(if (all) currentSelection - e.ids.toSet() else currentSelection + e.ids)
@@ -309,13 +310,13 @@ private fun GroupHeader(e: HeaderEntry, selectionMode: Boolean, allSelected: Boo
     ) {
         Box(Modifier.width(4.dp).height(22.dp).background(VioletGradient, RoundedCornerShape(2.dp)))
         Spacer(Modifier.width(12.dp))
-        Text(e.title, fontSize = fixedSp(20f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(-0.3f), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(e.title, fontSize = fixedSp(20f), fontWeight = FontWeight.Bold, letterSpacing = (-0.015).em, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.padding(start = 12.dp, end = 8.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(start = 12.dp, end = if (selectionMode) 8.dp else 12.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("${e.ids.size}", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(4.dp))
-                Icon(
-                    if (selectionMode) (if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle) else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                if (selectionMode) Icon(
+                    if (allSelected) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                     null, modifier = Modifier.size(18.dp),
                     tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )

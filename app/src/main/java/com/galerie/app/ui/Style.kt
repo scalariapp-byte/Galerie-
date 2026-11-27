@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import kotlin.math.roundToInt
 
 val GradStart = Color(0xFFA77BFF)
@@ -170,7 +171,7 @@ fun HeaderScaffold(
                     AppIconTile()
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, letterSpacing = fixedSp(-0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title, fontSize = fixedSp(28f), fontWeight = FontWeight.Bold, letterSpacing = (-0.02).em, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(subtitle, fontSize = fixedSp(14f), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     actions()
@@ -185,14 +186,13 @@ fun HeaderScaffold(
 private data class Tab(val icon: ImageVector, val label: String)
 
 @Composable
-fun BottomNav(selected: Int, onSelect: (Int) -> Unit, onCamera: () -> Unit) {
+fun BottomNav(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf(
         Tab(Icons.Filled.Image, "Photos"),
         Tab(Icons.Outlined.PlayCircle, "Vidéos"),
-        Tab(Icons.Outlined.FavoriteBorder, "Favoris"),
         Tab(Icons.Outlined.Folder, "Albums"),
     )
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
@@ -203,16 +203,6 @@ fun BottomNav(selected: Int, onSelect: (Int) -> Unit, onCamera: () -> Unit) {
             Row(Modifier.height(68.dp)) {
                 tabs.forEachIndexed { i, t -> NavTab(t, i == selected, Modifier.weight(1f)) { onSelect(i) } }
             }
-        }
-        Spacer(Modifier.width(10.dp))
-        Box(
-            Modifier.size(64.dp).shadow(18.dp, CircleShape, ambientColor = GradStart, spotColor = GradStart)
-                .clip(CircleShape).background(VioletGradient)
-                .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
-                .clickable(onClick = onCamera),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.PhotoCamera, "Appareil photo", tint = Color.White, modifier = Modifier.size(28.dp))
         }
     }
 }
