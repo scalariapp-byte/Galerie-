@@ -41,7 +41,7 @@ enum class ThemeMode(val label: String) { SYSTEM("Système"), LIGHT("Clair"), DA
 enum class SmartKind(val label: String, val short: String) {
     FAVORITES("Favoris", "Favoris"), VIDEOS("Vidéos", "Vidéos"), SCREENSHOTS("Captures d'écran", "Captures"),
     RECENT("Ajoutés récemment", "Récents"), GIF("GIF", "GIF"), HD("Haute définition", "HD"),
-    PANORAMA("Panoramas", "Panos"), LARGE("Gros fichiers", "Lourds"), DUPLICATES("Doublons", "Doublons"),
+    PANORAMA("Panoramas", "Panos"), LARGE("Gros fichiers", "Lourds"), DUPLICATES("Doublons", "Doublons"), WALLPAPERS("Fonds d'écran", "Fonds d'écran"),
 }
 
 data class Settings(
@@ -93,6 +93,9 @@ private sealed interface PendingOp {
     data class Move(val items: List<Media>, val path: String) : PendingOp
     data class Rename(val item: Media, val name: String) : PendingOp
 }
+
+/** Dossier des fonds d'écran : exclu de Galerie et des albums, visible dans Collections. */
+const val WALLPAPER_PATH = "Pictures/Fonds d'écran/"
 
 class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = MediaRepository(app)
@@ -174,7 +177,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     fun resolve(source: Source, a: List<Media>, t: List<Media>, s: Settings): List<Media> = when (source) {
         Source.Timeline -> sort(
             a.filter {
-                it.bucketId !in s.hiddenAlbums && when (s.filter) {
+                it.bucketId !in s.hiddenAlbums && !it.relativePath.equals(WALLPAPER_PATH, true) && when (s.filter) {
                     Filter.ALL -> true
                     Filter.PHOTOS -> !it.isVideo
                     Filter.VIDEOS -> it.isVideo
@@ -201,6 +204,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun smart(kind: SmartKind, a: List<Media>): List<Media> = when (kind) {
+        SmartKind.WALLPAPERS -> a.filter { it.relativePath.equals(WALLPAPER_PATH, true) }
         SmartKind.FAVORITES -> a.filter { it.isFavorite }
         SmartKind.VIDEOS -> a.filter { it.isVideo }
         SmartKind.SCREENSHOTS -> a.filter { it.isScreenshot }
@@ -253,7 +257,7 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun buildAlbums(a: List<Media>, sort: AlbumSort): List<Album> {
         // Fusion par nom : un seul « Camera », un seul « Screenshots »…
-        val list = a.groupBy { it.bucketName.trim().lowercase() }.map { (_, items) ->
+        val list = a.filter { !it.relativePath.equals(WALLPAPER_PATH, true) }.groupBy { it.bucketName.trim().lowercase() }.map { (_, items) ->
             val cover = items.maxBy { it.date }
             val ids = items.mapTo(HashSet()) { it.bucketId }
             Album(ids.min(), ids, cover.bucketName, cover.relativePath, cover, items.size, items.sumOf { it.size }, cover.date)
@@ -314,6 +318,23 @@ class GalleryViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         scheduleReload()
+    }
+
+    fun setWallpaper(m: Media, flags: Int) {
+        viewModelScope.launch {
+            val app = getApplication<Application>()
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    app.contentResolver.openInputStream(m.uri)!!.use {
+                        android.app.WallpaperManager.getInstance(app).setStream(it, null, true, flags)
+                    }
+                    true
+                }.getOrDefault(false)
+            }
+            if (!ok) { toast("Impossible de définir le fond d'écran"); return@launch }
+            toast("Fond d'écran défini")
+            if (!m.relativePath.equals(WALLPAPER_PATH, true)) move(listOf(m), WALLPAPER_PATH)
+        }
     }
 
     suspend fun details(m: Media, withLocation: Boolean) = withContext(Dispatchers.IO) { repo.details(m, withLocation) }

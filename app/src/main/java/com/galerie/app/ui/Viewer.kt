@@ -39,6 +39,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
@@ -139,6 +140,8 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
     var info by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf<Boolean?>(null) }
     var renaming by remember { mutableStateOf(false) }
+    var wallpaper by remember { mutableStateOf(false) }
+    var compress by remember { mutableStateOf(false) }
     val trashMode = source == Source.Trash
     val player = rememberPlayer(settings.loopVideos && !slideshow)
 
@@ -221,7 +224,9 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
                         ViewerAction(Icons.Filled.MoreVert, "Plus") { menu = true }
                         DropdownMenu(menu, { menu = false }) {
                             MenuItem(Icons.Filled.Slideshow, "Diaporama") { menu = false; slideshow = true }
-                            if (!current.isVideo) MenuItem(Icons.Filled.Wallpaper, "Définir comme…") { menu = false; Actions.setAs(ctx, current) }
+                            if (!current.isVideo) MenuItem(Icons.Filled.Wallpaper, "Fond d'écran") { menu = false; wallpaper = true }
+                            if (current.isVideo) MenuItem(Icons.Filled.Compress, "Compresser la vidéo") { menu = false; compress = true }
+                            if (!current.isVideo) MenuItem(Icons.AutoMirrored.Filled.OpenInNew, "Définir comme…") { menu = false; Actions.setAs(ctx, current) }
                             MenuItem(Icons.AutoMirrored.Filled.OpenInNew, "Ouvrir avec…") { menu = false; Actions.openWith(ctx, current) }
                             MenuItem(Icons.Filled.ContentCopy, "Copier vers un album") { menu = false; picker = false }
                             MenuItem(Icons.AutoMirrored.Filled.DriveFileMove, "Déplacer vers un album") { menu = false; picker = true }
@@ -241,6 +246,8 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
             picker = null
         }
     }
+    if (wallpaper) WallpaperDialog({ wallpaper = false }) { flag -> wallpaper = false; vm.setWallpaper(current, flag) }
+    if (compress) CompressDialog(vm, current) { compress = false }
     if (renaming) RenameDialog(current, { renaming = false }) { vm.rename(current, it); renaming = false }
 }
 

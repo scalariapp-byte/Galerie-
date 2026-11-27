@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Collections
@@ -155,6 +156,7 @@ fun smartIcon(k: SmartKind): ImageVector = when (k) {
     SmartKind.RECENT -> Icons.Filled.NewReleases
     SmartKind.LARGE -> Icons.Filled.SdStorage
     SmartKind.DUPLICATES -> Icons.Filled.ContentCopy
+    SmartKind.WALLPAPERS -> Icons.Filled.Wallpaper
 }
 
 @Composable
@@ -456,6 +458,7 @@ fun smartColor(k: SmartKind): Color = when (k) {
     SmartKind.PANORAMA -> Color(0xFF8C9EFF)
     SmartKind.LARGE -> Color(0xFFFF9A4D)
     SmartKind.DUPLICATES -> Color(0xFF26D0C0)
+    SmartKind.WALLPAPERS -> Color(0xFF7CC4FF)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
