@@ -79,6 +79,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -332,6 +333,40 @@ fun SortMenu(vm: GalleryViewModel, settings: Settings, showFilter: Boolean) {
 }
 
 @Composable
+private fun CollectionsMenu(vm: GalleryViewModel) {
+    var open by remember { mutableStateOf(false) }
+    val items = rememberSmartItems(vm).filter { it.label != "Corbeille" && it.label != SmartKind.VIDEOS.short }
+    Box {
+        Row(
+            Modifier.height(44.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), CircleShape)
+                .clickable { open = true }.padding(start = 14.dp, end = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Favorite, null, tint = Color(0xFFFF5C8A), modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Collections", fontSize = fixedSp(14f), fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Icon(Icons.Filled.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DropdownMenu(open, { open = false }, shape = RoundedCornerShape(18.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            items.forEach { s ->
+                DropdownMenuItem(
+                    text = { Text(s.label, fontSize = fixedSp(14f), fontWeight = FontWeight.Medium) },
+                    leadingIcon = {
+                        Box(Modifier.size(30.dp).background(s.color.copy(alpha = 0.18f), CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(s.icon, null, tint = s.color, modifier = Modifier.size(16.dp))
+                        }
+                    },
+                    trailingIcon = { if (s.count > 0) Text("${s.count}", fontSize = fixedSp(13f), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { open = false; s.open() },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SectionTitle(text: String) {
     Text(
         text.uppercase(), fontSize = fixedSp(11f), fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp,
@@ -428,7 +463,7 @@ fun smartColor(k: SmartKind): Color = when (k) {
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
     val settings by vm.settings.collectAsState()
-    HeaderScaffold(vm, "", "", emptyList(), actions = {
+    HeaderScaffold(vm, "", "", emptyList(), leading = { CollectionsMenu(vm) }, actions = {
         val trashCount = vm.trash.collectAsState().value.size
         Box {
             RoundIconButton(Icons.Filled.Delete, "Corbeille") { vm.push(Screen.Collection(Source.Trash, "Corbeille")) }
@@ -455,7 +490,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     }) { top ->
         val hPad = 8.dp
         val gap = 6.dp
-        val smart = rememberSmartItems(vm).filter { it.label != "Corbeille" }
         // Une seule liste : Collections → Albums → Outils. Pas de vide, tout se suit.
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
@@ -464,25 +498,6 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
             verticalArrangement = Arrangement.spacedBy(gap),
             modifier = Modifier.fillMaxSize(),
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 4.dp)) {
-                    items(smart) { s ->
-                        Row(
-                            Modifier.height(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                .clickable(onClick = s.open).padding(horizontal = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(s.icon, null, tint = s.color, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(5.dp))
-                            Text(s.label, fontSize = fixedSp(12f), fontWeight = FontWeight.Medium, maxLines = 1)
-                            if (s.count > 0) {
-                                Spacer(Modifier.width(4.dp))
-                                Text("${s.count}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
             items(albums, key = { it.id }) { a ->
                 AlbumTile(
                     a, hidden = settings.hiddenAlbums.containsAll(a.bucketIds), width = 88.dp,
