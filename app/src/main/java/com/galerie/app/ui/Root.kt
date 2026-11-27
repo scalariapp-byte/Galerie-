@@ -188,7 +188,6 @@ private fun HomeScreen(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
         }
     }
     }
-    }
 }
 
 @Composable
