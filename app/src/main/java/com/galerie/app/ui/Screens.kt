@@ -403,14 +403,7 @@ private fun CollectionTile(s: SmartItem, modifier: Modifier, onClick: () -> Unit
 
 @Composable
 private fun OverflowMenu(vm: GalleryViewModel) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        RoundIconButton(Icons.Filled.MoreVert, "Plus") { open = true }
-        DropdownMenu(open, { open = false }) {
-            DropdownMenuItem({ Text("Corbeille") }, { open = false; vm.push(Screen.Collection(Source.Trash, "Corbeille")) }, leadingIcon = { Icon(Icons.Filled.Delete, null) })
-            DropdownMenuItem({ Text("Paramètres") }, { open = false; vm.push(Screen.SettingsScreen) }, leadingIcon = { Icon(Icons.Filled.Settings, null) })
-        }
-    }
+    RoundIconButton(Icons.Filled.Settings, "Paramètres") { vm.push(Screen.SettingsScreen) }
 }
 
 // ======================= ALBUMS (tout visible sans défiler) =======================
@@ -429,7 +422,7 @@ fun smartColor(k: SmartKind): Color = when (k) {
     SmartKind.DUPLICATES -> Color(0xFF26D0C0)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
     val albums by vm.albums.collectAsState()
@@ -463,15 +456,23 @@ fun AlbumsTab(vm: GalleryViewModel, outer: PaddingValues) {
             modifier = Modifier.fillMaxSize(),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Collections") }
-            items(smart, key = { "c" + it.label }) { s ->
-                Column(
-                    Modifier.clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable(onClick = s.open).padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(s.icon, null, tint = s.color, modifier = Modifier.size(20.dp))
-                    Text(s.label, fontSize = fixedSp(11f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
-                    Text(if (s.count > 0) "${s.count}" else "–", fontSize = fixedSp(10f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    smart.forEach { s ->
+                        Row(
+                            Modifier.height(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .clickable(onClick = s.open).padding(horizontal = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(s.icon, null, tint = s.color, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(s.label, fontSize = fixedSp(12f), fontWeight = FontWeight.Medium, maxLines = 1)
+                            if (s.count > 0) {
+                                Spacer(Modifier.width(4.dp))
+                                Text("${s.count}", fontSize = fixedSp(11f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Albums · ${albums.size}") }
