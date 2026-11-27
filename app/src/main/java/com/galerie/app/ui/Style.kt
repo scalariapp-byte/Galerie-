@@ -108,7 +108,7 @@ fun AppIconTile(size: Dp = 50.dp) {
 @Composable
 fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     Box(
-        Modifier.padding(start = 5.dp).size(36.dp).clip(CircleShape)
+        Modifier.padding(start = 14.dp).size(36.dp).clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f))
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f), CircleShape)
             .clickable(onClick = onClick),
