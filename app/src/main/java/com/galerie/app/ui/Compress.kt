@@ -49,7 +49,7 @@ import java.io.File
 // ---------------- Fond d'écran ----------------
 
 @Composable
-fun WallpaperDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+fun WallpaperDialog(onDismiss: () -> Unit, showMove: Boolean = true, onGroup: (() -> Unit)? = null, onPick: (Int) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Définir comme fond d'écran") },
@@ -62,7 +62,12 @@ fun WallpaperDialog(onDismiss: () -> Unit, onPick: (Int) -> Unit) {
                 ).forEach { (label, flag) ->
                     ListItem(headlineContent = { Text(label) }, modifier = Modifier.clickable { onPick(flag) })
                 }
-                Text(
+                if (onGroup != null) ListItem(
+                    headlineContent = { Text("Ajouter à un groupe…", color = MaterialTheme.colorScheme.primary) },
+                    supportingContent = { Text("Préparer plusieurs fonds, rotation automatique") },
+                    modifier = Modifier.clickable { onGroup() },
+                )
+                if (showMove) Text(
                     "L'image sera rangée dans « Fonds d'écran » et n'apparaîtra plus dans Galerie.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

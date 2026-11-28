@@ -12,8 +12,8 @@ android {
         applicationId = "com.galerie.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 33
-        versionName = "4.2"
+        versionCode = 34
+        versionName = "4.3"
         resourceConfigurations += listOf("fr")
     }
 
@@ -69,4 +69,5 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.5.1")
     implementation("androidx.media3:media3-transformer:1.5.1")
     implementation("androidx.media3:media3-effect:1.5.1")
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 }

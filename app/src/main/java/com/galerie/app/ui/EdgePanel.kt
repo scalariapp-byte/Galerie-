@@ -61,8 +61,10 @@ fun rememberSmartItems(vm: GalleryViewModel): List<SmartItem> {
     return buildList {
         SmartKind.entries.forEach { k ->
             val n = counts[k]?.first ?: 0
-            if (n > 0 || k == SmartKind.FAVORITES) {
-                add(SmartItem(smartIcon(k), k.short, n, smartColor(k)) { vm.push(Screen.Collection(Source.Smart(k), k.label)) })
+            if (n > 0 || k == SmartKind.FAVORITES || k == SmartKind.WALLPAPERS) {
+                add(SmartItem(smartIcon(k), k.short, n, smartColor(k)) {
+                    vm.push(if (k == SmartKind.WALLPAPERS) Screen.Wallpapers else Screen.Collection(Source.Smart(k), k.label))
+                })
             }
         }
         add(SmartItem(Icons.Filled.Delete, "Corbeille", trash.size, Color(0xFFFF6B6B)) { vm.push(Screen.Collection(Source.Trash, "Corbeille")) })

@@ -158,6 +158,7 @@ private fun Navigation(vm: GalleryViewModel, partial: Boolean, onRequestMore: ()
                 Screen.Search -> SearchScreen(vm)
                 is Screen.Swipe -> SwipeScreen(vm, screen.videos)
                 is Screen.Editor -> EditorScreen(vm, screen.mediaId)
+                Screen.Wallpapers -> WallpapersScreen(vm)
             }
         }
     }

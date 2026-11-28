@@ -141,6 +141,7 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
     var picker by remember { mutableStateOf<Boolean?>(null) }
     var renaming by remember { mutableStateOf(false) }
     var wallpaper by remember { mutableStateOf(false) }
+    var wallGroup by remember { mutableStateOf(false) }
     var compress by remember { mutableStateOf(false) }
     val trashMode = source == Source.Trash
     val player = rememberPlayer(settings.loopVideos && !slideshow)
@@ -249,7 +250,8 @@ fun ViewerScreen(vm: GalleryViewModel, source: Source, startId: Long) {
             picker = null
         }
     }
-    if (wallpaper) WallpaperDialog({ wallpaper = false }) { flag -> wallpaper = false; vm.setWallpaper(current, flag) }
+    if (wallpaper) WallpaperDialog({ wallpaper = false }, onGroup = { wallpaper = false; wallGroup = true }) { flag -> wallpaper = false; vm.setWallpaper(current, flag) }
+    if (wallGroup) WallGroupPicker(vm, { wallGroup = false }) { path -> wallGroup = false; vm.move(listOf(current), path) }
     if (compress) CompressDialog(vm, current) { compress = false }
     if (renaming) RenameDialog(current, { renaming = false }) { vm.rename(current, it); renaming = false }
 }

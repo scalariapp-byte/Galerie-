@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -101,6 +102,7 @@ fun SelectionTopBar(vm: GalleryViewModel, items: List<Media>) {
 fun SelectionBottomBar(vm: GalleryViewModel, trashMode: Boolean, floating: Boolean = true) {
     val ctx = LocalContext.current
     var picker by remember { mutableStateOf<Boolean?>(null) }
+    var wallPicker by remember { mutableStateOf(false) }
     val selected = remember(vm.selection) { vm.byIds(vm.selection) }
     Surface(
         shape = RoundedCornerShape(30.dp),
@@ -121,9 +123,14 @@ fun SelectionBottomBar(vm: GalleryViewModel, trashMode: Boolean, floating: Boole
                 }
                 BarAction(Icons.AutoMirrored.Filled.DriveFileMove, "Déplacer") { picker = true }
                 BarAction(Icons.Filled.ContentCopy, "Copier") { picker = false }
+                BarAction(Icons.Filled.Wallpaper, "Fonds") { wallPicker = true }
                 BarAction(Icons.Filled.Delete, "Supprimer", MaterialTheme.colorScheme.error) { vm.trashItems(selected) }
             }
         }
+    }
+    if (wallPicker) WallGroupPicker(vm, { wallPicker = false }) { path ->
+        wallPicker = false
+        vm.move(selected.filter { !it.isVideo }, path)
     }
     picker?.let { move ->
         AlbumPickerDialog(vm, move, onDismiss = { picker = null }) { path ->
